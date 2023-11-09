@@ -49,6 +49,10 @@
 #' drawn with a hollow point.
 #' @param ci A number between 0 and 1 (defaults to 0.95) indicating the type of
 #' confidence interval to be drawn.
+#' @param use_alpha logical (defaults to FALSE) indicating whether points/lines where
+#' p>0.05 should be semi-transparent
+#' @param alpha_value A number between 0 and 1 (defaults to 0.5) indicating the opacity
+#' level if `use_alpha` is TRUE.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -138,6 +142,8 @@ forestplot <- function(df,
                        logodds = FALSE,
                        psignif = 0.05,
                        ci = 0.95,
+                       use_alpha = FALSE,
+                       alpha_value = 0.5,
                        ...) {
 
   # Input checks
@@ -183,6 +189,9 @@ forestplot <- function(df,
       # Add a logical variable with the info on whether points will be filled.
       # Defaults to TRUE.
       .filled = TRUE,
+      # Add a variable with the info on whether points should be transparent
+      # Defaults to 1 (opaque)
+      .alpha = NA,
       # Add a variable with the estimates to be printed on the right side of y-axis
       .label = sprintf("%.2f", !!estimate)
     )
@@ -199,10 +208,17 @@ forestplot <- function(df,
   }
 
   # If pvalue provided, adjust .filled variable
-  if (!quo_is_null(pvalue)) {
+  if (!quo_is_null(pvalue) & !use_alpha) {
     df <-
       df %>%
       dplyr::mutate(.filled = !!pvalue < !!psignif)
+  }
+  
+  # If `use_alpha` then make partially transparent if non-sig
+  if (!quo_is_null(pvalue) & use_alpha) {
+    df <-
+      df %>%
+      dplyr::mutate(.alpha := dplyr::if_else(!!pvalue < !!psignif, 1, !!alpha_value))
   }
 
   # Plot
@@ -260,16 +276,19 @@ forestplot <- function(df,
         xmax = .data$.xmax,
         colour = !!colour,
         shape = !!shape,
-        filled = .data$.filled
+        filled = .data$.filled,
+        alpha = .data$.alpha
       ),
-      position = ggstance::position_dodgev(height = 0.5)
+      position = ggstance::position_dodgev(height = 0.65)
     ) +
     # Define the shapes to be used manually
     ggplot2::scale_shape_manual(values = c(21L, 22L, 23L, 24L, 25L)) +
     guides(
       colour = guide_legend(reverse = TRUE),
       shape = guide_legend(reverse = TRUE)
-    )
+    ) +
+    # remove guide for alpha
+    guides(alpha="none")
 
   # Limits adjustment
   #

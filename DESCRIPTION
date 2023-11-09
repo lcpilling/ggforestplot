@@ -1,7 +1,7 @@
 Package: ggforestplot
 Type: Package
 Title: Forestplots of Measures of Effects and Their Confidence Intervals
-Version: 0.1.0
+Version: 0.1.0.9000
 Authors@R: c(
     person(
         "Ilari", "Scheinin", email = "ilari.scheinin@nightingalehealth.com",

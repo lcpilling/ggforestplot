@@ -38,3 +38,8 @@ in `vignettes/data` was updated to include new biomarkers.
 - Vignettes updated to reflect the number of biomarkers in current 2020 platform,
 while `ggforce::facet_col()` is used in examples instead of
 `patchwork::wrap_plots()`.
+
+# ggforestplot 0.1.0.9000
+
+- Add "use_alpha" option -- if p>0.05 make partially transparent, rather than unfilled shape
+
