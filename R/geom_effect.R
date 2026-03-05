@@ -52,7 +52,7 @@
 #'   geom_vline(
 #'     xintercept = 0,
 #'     linetype = "solid",
-#'     size = 0.4,
+#'     linewidth = 0.4,
 #'     colour = "black"
 #'   )
 #' print(g)

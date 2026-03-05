@@ -247,7 +247,7 @@ forestplot <- function(df,
     geom_vline(
       xintercept = ifelse(test = logodds, yes = 1, no = 0),
       linetype = "solid",
-      size = 0.4,
+      linewidth = 0.4,
       colour = "black"
     )
 
