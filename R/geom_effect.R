@@ -117,7 +117,7 @@ GeomEffect <- ggproto("GeomEffect", Geom,
                           fatten = 2) {
     ggstance::GeomPointrangeh$draw_panel(
       # @Ilari Indeed, the transform() is needed here for fatten to go through
-      transform(data, fatten = fatten) %>%
+      transform(data, fatten = fatten, linewidth = size) %>%
         dplyr::mutate(
           fill = dplyr::case_when(
             is.na(.data$filled) ~ "#00000000",
