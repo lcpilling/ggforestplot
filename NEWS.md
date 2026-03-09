@@ -38,3 +38,15 @@ in `vignettes/data` was updated to include new biomarkers.
 - Vignettes updated to reflect the number of biomarkers in current 2020 platform,
 while `ggforce::facet_col()` is used in examples instead of
 `patchwork::wrap_plots()`.
+
+# ggforestplot 0.1.1
+
+## Changes
+
+- Fix `ggforce::facet_col()` compatibility by requiring `ggforce (>= 0.5.0)` and
+`ggplot2 (>= 3.4.0)`.
+- Replace deprecated `size` aesthetic with `linewidth` in `geom_stripes()`.
+- `forestplot()` gains a new `alpha` parameter (default `NULL`). When a number
+between 0 and 1 is provided, non-significant entries (determined by `pvalue` and
+`psignif`) are drawn semi-transparent at that alpha level in addition to being
+shown as hollow points.

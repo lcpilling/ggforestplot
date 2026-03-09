@@ -49,6 +49,11 @@
 #' drawn with a hollow point.
 #' @param ci A number between 0 and 1 (defaults to 0.95) indicating the type of
 #' confidence interval to be drawn.
+#' @param alpha numeric, defaults to NULL (current behaviour: non-significant
+#' entries are drawn as hollow points only). When a number between 0 and 1 is
+#' provided, non-significant entries (as determined by \code{pvalue} and
+#' \code{psignif}) will additionally be drawn with this level of transparency
+#' applied to both the point and the CI lines.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -138,11 +143,15 @@ forestplot <- function(df,
                        logodds = FALSE,
                        psignif = 0.05,
                        ci = 0.95,
+                       alpha = NULL,
                        ...) {
 
   # Input checks
   stopifnot(is.data.frame(df))
   stopifnot(is.logical(logodds))
+  if (!is.null(alpha)) {
+    stopifnot(is.numeric(alpha), length(alpha) == 1L, alpha >= 0, alpha <= 1)
+  }
 
   # TODO: Add some warnings when name, estimate etc are missing from df and user
   # is not defining the name, estimate etc explicitly.
@@ -205,6 +214,17 @@ forestplot <- function(df,
       dplyr::mutate(.filled = !!pvalue < !!psignif)
   }
 
+  # If alpha provided, set .alpha to alpha value for non-significant entries
+  # and NA (fully opaque) for significant entries.
+  # .filled = TRUE means significant → NA (opaque); FALSE means non-significant → alpha (transparent)
+  if (!is.null(alpha)) {
+    df <-
+      df %>%
+      dplyr::mutate(
+        .alpha = dplyr::if_else(.data$.filled, NA_real_, as.double(alpha))
+      )
+  }
+
   # Plot
   g <-
     ggplot2::ggplot(
@@ -251,17 +271,32 @@ forestplot <- function(df,
       colour = "black"
     )
 
-  g <-
-    g +
-    # And point+errorbars
-    geom_effect(
+  # Build aesthetics for geom_effect; include per-row alpha when requested
+  effect_aes <-
+    if (is.null(alpha)) {
       ggplot2::aes(
         xmin = .data$.xmin,
         xmax = .data$.xmax,
         colour = !!colour,
         shape = !!shape,
         filled = .data$.filled
-      ),
+      )
+    } else {
+      ggplot2::aes(
+        xmin = .data$.xmin,
+        xmax = .data$.xmax,
+        colour = !!colour,
+        shape = !!shape,
+        filled = .data$.filled,
+        alpha = .data$.alpha
+      )
+    }
+
+  g <-
+    g +
+    # And point+errorbars
+    geom_effect(
+      effect_aes,
       position = ggstance::position_dodgev(height = 0.5)
     ) +
     # Define the shapes to be used manually
@@ -270,6 +305,11 @@ forestplot <- function(df,
       colour = guide_legend(reverse = TRUE),
       shape = guide_legend(reverse = TRUE)
     )
+
+  # When alpha transparency is active, use identity scale and suppress legend
+  if (!is.null(alpha)) {
+    g <- g + ggplot2::scale_alpha_identity()
+  }
 
   # Limits adjustment
   #

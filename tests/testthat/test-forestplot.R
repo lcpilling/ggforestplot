@@ -161,6 +161,24 @@ test_that("forestplot plots non-significant values as hollow", {
   )
 })
 
+test_that("forestplot alpha parameter makes non-significant values semi-transparent", {
+
+  vdiffr::expect_doppelganger(
+    title = "logodds-alpha",
+    fig = forestplot(
+      df = df_logodds,
+      estimate = beta,
+      logodds = TRUE,
+      colour = study,
+      pvalue = pvalue,
+      psignif = 0.05,
+      alpha = 0.2,
+      title = "Associations to type 2 diabetes"
+    ),
+    path = "logodds"
+  )
+})
+
 test_that("forestplot plots ticks to between 0 and 1 when logodd = TRUE", {
   
   set.seed(0)
