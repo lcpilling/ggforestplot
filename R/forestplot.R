@@ -492,7 +492,10 @@ forestplot <- function(df,
     )
   }
   # est_table: monospace text labels to the right of the plot panel.
-  # position_dodgev matches the geom_effect position so grouped plots align.
+  # position = "identity" is used here because x = Inf is a constant (not a
+  # mapped aesthetic); position_dodgev requires a mapped x aesthetic and would
+  # error with "Neither x nor xmax defined".  One label per y-level is correct
+  # for the est_table column regardless of the number of colour/shape groups.
   # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
   # keep labels compact relative to the plot rows.
   if (est_table) {
@@ -503,7 +506,7 @@ forestplot <- function(df,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = ggstance::position_dodgev(height = 0.5)
+        position = "identity"
       ) +
       ggplot2::theme(
         plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
