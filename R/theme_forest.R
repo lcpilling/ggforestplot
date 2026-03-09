@@ -49,7 +49,7 @@ theme_forest <- function(base_size = 13,
       ),
       panel.grid.major.x = element_line(
         colour = "gray50",
-        size = 0.25,
+        linewidth = 0.25,
         linetype = 2
       ),
       panel.grid.minor.x = element_blank(),

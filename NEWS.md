@@ -38,3 +38,31 @@ in `vignettes/data` was updated to include new biomarkers.
 - Vignettes updated to reflect the number of biomarkers in current 2020 platform,
 while `ggforce::facet_col()` is used in examples instead of
 `patchwork::wrap_plots()`.
+
+# ggforestplot 0.1.1
+
+## Changes
+
+- Fix `ggforce::facet_col()` compatibility by requiring `ggforce (>= 0.5.0)` and
+`ggplot2 (>= 3.4.0)`.
+- Replace deprecated `size` aesthetic with `linewidth` in `geom_stripes()`.
+- `forestplot()` gains a new `alpha` parameter (default `NULL`). When a number
+between 0 and 1 is provided, non-significant entries (determined by `pvalue` and
+`psignif`) are drawn semi-transparent at that alpha level in addition to being
+shown as hollow points.
+- `forestplot()` now accepts multiple column names for the `name` argument via
+`name = c(col1, col2, ...)`. When multiple columns are supplied, an internally
+unique composite key is built from all columns so that rows sharing the same
+first-column value but differing in other columns (e.g. same gene, different
+rsid) are placed on separate y-axis rows. Values are formatted and combined into
+a table-like label in the y-axis area (monospace font applied automatically for
+alignment).
+- `forestplot()` gains a new `filled_nonsig` parameter (default `FALSE`). When
+`TRUE`, non-significant entries are drawn as filled points rather than hollow;
+intended for use with `alpha` so that transparency alone distinguishes
+significant from non-significant entries.
+- `forestplot()` gains a new `est_table` parameter (default `FALSE`). When
+`TRUE`, a monospace-formatted text column is drawn to the right of the plotting
+area showing the estimate and confidence interval as `"1.50 (1.25 - 1.75)"`.
+For log-odds plots the exponentiated values are displayed. Trailing zeros are
+preserved for consistent alignment.

@@ -13,8 +13,16 @@
 #' non-significant results will be displayed as hollow points. Other variables
 #' may be used as aesthetics to define the colour and the shape of the points
 #' to be plotted.
-#' @param name the variable in \code{df} that contains the y-axis
-#' names. This argument is automatically \link[rlang:quotation]{quoted} and
+#' @param name the variable (or variables) in \code{df} that contains the y-axis
+#' names. A single variable may be supplied (existing behaviour). When multiple
+#' variables are provided using \code{c(col1, col2, ...)}, an internally unique
+#' composite key is built from the combination of all supplied columns so that
+#' rows sharing the same first-column value but differing in subsequent columns
+#' (e.g. same gene name, different rsid) are placed on separate rows. The values
+#' of each variable are formatted and combined into a table-like label displayed
+#' in place of the usual axis text; a monospace font is applied automatically to
+#' preserve column alignment.
+#' This argument is automatically \link[rlang:quotation]{quoted} and
 #' \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 #' See Note.
 #' @param estimate the variable in \code{df} that contains the values (or log of
@@ -49,6 +57,21 @@
 #' drawn with a hollow point.
 #' @param ci A number between 0 and 1 (defaults to 0.95) indicating the type of
 #' confidence interval to be drawn.
+#' @param alpha numeric, defaults to NULL (current behaviour: non-significant
+#' entries are drawn as hollow points only). When a number between 0 and 1 is
+#' provided, non-significant entries (as determined by \code{pvalue} and
+#' \code{psignif}) will additionally be drawn with this level of transparency
+#' applied to both the point and the CI lines.
+#' @param filled_nonsig logical (defaults to FALSE). When TRUE, non-significant
+#' entries are drawn as \emph{filled} points (rather than hollow) regardless of
+#' significance. This is most useful in combination with \code{alpha}: the
+#' transparency then serves as the sole visual indicator for non-significance
+#' rather than the hollow/filled distinction.
+#' @param est_table logical (defaults to FALSE). When TRUE, a monospace-formatted
+#' text column is drawn to the right of the plotting area showing the estimate
+#' and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
+#' plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
+#' zeros are preserved so all labels align in a monospace font.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -138,17 +161,44 @@ forestplot <- function(df,
                        logodds = FALSE,
                        psignif = 0.05,
                        ci = 0.95,
+                       alpha = NULL,
+                       filled_nonsig = FALSE,
+                       est_table = FALSE,
                        ...) {
 
   # Input checks
   stopifnot(is.data.frame(df))
   stopifnot(is.logical(logodds))
+  stopifnot(is.logical(filled_nonsig))
+  stopifnot(is.logical(est_table))
+  if (!is.null(alpha)) {
+    stopifnot(is.numeric(alpha), length(alpha) == 1L, alpha >= 0, alpha <= 1)
+  }
 
   # TODO: Add some warnings when name, estimate etc are missing from df and user
   # is not defining the name, estimate etc explicitly.
 
   # Quote input
-  name <- enquo(name)
+  # Check if name is given as c(col1, col2, ...) for multi-column table labels
+  name_quo <- enquo(name)
+  name_expr <- rlang::get_expr(name_quo)
+  name_is_multi <- rlang::is_call(name_expr, "c") &&
+    length(rlang::call_args(name_expr)) > 1L
+  if (name_is_multi) {
+    col_exprs <- rlang::call_args(name_expr)
+    quo_env <- rlang::get_env(name_quo)
+    name_quos <- lapply(col_exprs, function(e) rlang::new_quosure(e, quo_env))
+    # Build composite character key from ALL name columns so that rows sharing
+    # the same first-column value but differing in others (e.g. same gene,
+    # different rsid) are treated as distinct y-axis positions.
+    name_cols_df <- dplyr::select(df, !!!name_quos) %>%
+      dplyr::mutate(dplyr::across(dplyr::everything(), as.character))
+    name_key_char <- apply(name_cols_df, 1L, paste, collapse = "\n")
+    df$.name_key <- name_key_char
+  } else {
+    name <- name_quo
+    name_quos <- list(name_quo)
+  }
   estimate <- enquo(estimate)
   se <- enquo(se)
   pvalue <- enquo(pvalue)
@@ -167,16 +217,30 @@ forestplot <- function(df,
   # Estimate multiplication const for CI
   const <- stats::qnorm(1 - (1 - ci) / 2)
 
-  # Adjust data frame variables
-  df <-
-    df %>%
-    # Convert to a factor to preserve order.
+  # Convert y-axis identifier to an ordered factor for correct row ordering,
+  # then compute derived columns shared by both code paths.
+  if (name_is_multi) {
+    df <- df %>%
+      dplyr::mutate(
+        .name_key = factor(
+          .data$.name_key,
+          levels = unique(.data$.name_key) %>% rev(),
+          ordered = TRUE
+        )
+      )
+  } else {
+    df <- df %>%
+      dplyr::mutate(
+        !!name := factor(
+          !!name,
+          levels = !!name %>% unique() %>% rev(),
+          ordered = TRUE
+        )
+      )
+  }
+
+  df <- df %>%
     dplyr::mutate(
-      !!name := factor(
-        !!name,
-        levels = !!name %>% unique() %>% rev(),
-        ordered = TRUE
-      ),
       # Added here to estimate xbreaks for log odds later
       .xmin = !!estimate - const * !!se,
       .xmax = !!estimate + const * !!se,
@@ -198,6 +262,19 @@ forestplot <- function(df,
       )
   }
 
+  # Build estimate-table label after any exponentiation so the values shown
+  # are on the correct display scale.  sprintf "%.2f" preserves trailing zeros
+  # (e.g. 1.50 not 1.5) for monospace alignment.
+  if (est_table) {
+    df <- df %>%
+      dplyr::mutate(
+        .est_label = sprintf(
+          "%.2f (%.2f - %.2f)",
+          !!estimate, .data$.xmin, .data$.xmax
+        )
+      )
+  }
+
   # If pvalue provided, adjust .filled variable
   if (!quo_is_null(pvalue)) {
     df <-
@@ -205,13 +282,61 @@ forestplot <- function(df,
       dplyr::mutate(.filled = !!pvalue < !!psignif)
   }
 
+  # If alpha provided, set .alpha based on significance BEFORE any filled_nonsig
+  # override so non-significant entries still receive the requested transparency.
+  # .filled = TRUE means significant → NA (opaque); FALSE means non-significant → alpha (transparent)
+  if (!is.null(alpha)) {
+    df <-
+      df %>%
+      dplyr::mutate(
+        .alpha = dplyr::if_else(.data$.filled, NA_real_, as.double(alpha))
+      )
+  }
+
+  # If filled_nonsig is TRUE, override .filled so all points remain filled;
+  # the alpha transparency (if set) then serves as the sole visual indicator
+  # of non-significance.
+  if (filled_nonsig) {
+    df <- df %>%
+      dplyr::mutate(.filled = TRUE)
+  }
+
+  # Build formatted multi-column y-axis labels when multiple name columns provided
+  if (name_is_multi) {
+    # One representative row per unique composite key (first occurrence).
+    # Use the pre-factoring character keys stored in name_key_char.
+    label_data <- name_cols_df
+    label_data$.name_key <- name_key_char
+    label_data <- dplyr::distinct(label_data, .name_key, .keep_all = TRUE)
+
+    # Pad each column to its max value width for monospace alignment
+    padded_cols <- lapply(seq_len(ncol(name_cols_df)), function(i) {
+      vals <- label_data[[i]]
+      max_w <- max(nchar(vals), na.rm = TRUE)
+      formatC(vals, width = max_w, flag = "-")
+    })
+
+    # Combine padded column values into a single string per row
+    combined_labels <- vapply(
+      seq_len(nrow(label_data)),
+      function(i) paste(sapply(padded_cols, `[[`, i), collapse = "  "),
+      character(1L)
+    )
+
+    # Named vector: composite key -> combined label (for scale_y_discrete)
+    y_labels <- setNames(combined_labels, label_data$.name_key)
+  }
+
+  # Define the y aesthetic variable: composite key for multi, primary column otherwise
+  y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
+
   # Plot
   g <-
     ggplot2::ggplot(
       df,
       aes(
         x = !!estimate,
-        y = !!name
+        y = !!y_var
       )
     )
 
@@ -247,21 +372,36 @@ forestplot <- function(df,
     geom_vline(
       xintercept = ifelse(test = logodds, yes = 1, no = 0),
       linetype = "solid",
-      size = 0.4,
+      linewidth = 0.4,
       colour = "black"
     )
 
-  g <-
-    g +
-    # And point+errorbars
-    geom_effect(
+  # Build aesthetics for geom_effect; include per-row alpha when requested
+  effect_aes <-
+    if (is.null(alpha)) {
       ggplot2::aes(
         xmin = .data$.xmin,
         xmax = .data$.xmax,
         colour = !!colour,
         shape = !!shape,
         filled = .data$.filled
-      ),
+      )
+    } else {
+      ggplot2::aes(
+        xmin = .data$.xmin,
+        xmax = .data$.xmax,
+        colour = !!colour,
+        shape = !!shape,
+        filled = .data$.filled,
+        alpha = .data$.alpha
+      )
+    }
+
+  g <-
+    g +
+    # And point+errorbars
+    geom_effect(
+      effect_aes,
       position = ggstance::position_dodgev(height = 0.5)
     ) +
     # Define the shapes to be used manually
@@ -270,6 +410,11 @@ forestplot <- function(df,
       colour = guide_legend(reverse = TRUE),
       shape = guide_legend(reverse = TRUE)
     )
+
+  # When alpha transparency is active, use identity scale and suppress legend
+  if (!is.null(alpha)) {
+    g <- g + ggplot2::scale_alpha_identity()
+  }
 
   # Limits adjustment
   #
@@ -331,14 +476,49 @@ forestplot <- function(df,
     args$ylab <- ""
   }
   g <- g + labs(y = args$ylab)
-  if ("xlim" %in% names(args)) {
-    g <- g + coord_cartesian(xlim = args$xlim)
-  }
   if ("ylim" %in% names(args)) {
     g <- g + ylim(args$ylim)
   }
   if ("xtickbreaks" %in% names(args) & !logodds) {
     g <- g + scale_x_continuous(breaks = args$xtickbreaks)
+  }
+  # coord_cartesian: consolidate xlim + clip handling in one call.
+  # clip must be "off" when est_table is TRUE so geom_text renders outside the panel.
+  has_xlim <- "xlim" %in% names(args)
+  if (has_xlim || est_table) {
+    g <- g + coord_cartesian(
+      xlim = if (has_xlim) args$xlim else NULL,
+      clip = if (est_table) "off" else "on"
+    )
+  }
+  # est_table: monospace text labels to the right of the plot panel.
+  # position = "identity" is used here because x = Inf is a constant (not a
+  # mapped aesthetic); position_dodgev requires a mapped x aesthetic and would
+  # error with "Neither x nor xmax defined".  One label per y-level is correct
+  # for the est_table column regardless of the number of colour/shape groups.
+  # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
+  # keep labels compact relative to the plot rows.
+  if (est_table) {
+    g <- g +
+      ggplot2::geom_text(
+        ggplot2::aes(label = .data$.est_label),
+        x = Inf,
+        hjust = -0.05,
+        family = "mono",
+        size = 3,
+        position = "identity"
+      ) +
+      ggplot2::theme(
+        plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
+      )
+  }
+  # Apply formatted multi-column y-axis labels and monospace font for alignment.
+  # "mono" is a portable generic family that R maps to a monospace font on all
+  # platforms (e.g. Courier on Windows/macOS, DejaVu Mono on Linux).
+  if (name_is_multi) {
+    g <- g +
+      ggplot2::scale_y_discrete(labels = y_labels) +
+      ggplot2::theme(axis.text.y = ggplot2::element_text(family = "mono", hjust = 0))
   }
   g
 }

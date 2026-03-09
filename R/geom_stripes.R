@@ -50,12 +50,12 @@
 #'   # Add custom theme
 #'   theme_forest() +
 #'   # Add striped background
-#'   geom_stripes(odd = "#33333333", even = "#00000000") +
+#'   geom_stripes(odd = "#00000000", even = "#33333333") +
 #'   # Add vertical line at null point
 #'   geom_vline(
 #'     xintercept = 0,
 #'     linetype = "solid",
-#'     size = 0.4,
+#'     linewidth = 0.4,
 #'     colour = "black"
 #'   )
 #' print(g)
@@ -83,13 +83,13 @@ GeomStripes <- ggplot2::ggproto("GeomStripes", ggplot2::Geom,
 
   default_aes = ggplot2::aes(
     xmin = -Inf, xmax = Inf,
-    odd = "#22222222", even = "#00000000",
-    # Change 'size' below from 0 to NA.
+    odd = "#00000000", even = "#22222222",
+    # Set 'linewidth' to NA to suppress rectangle borders.
     # When not NA then when *printing in pdf device* borders are there despite
     # requested 0th size. Seems to be some ggplot2 bug caused by grid overriding
-    # an lwd parameter somewhere, unless the size is set to NA. Found solution here
+    # an lwd parameter somewhere, unless the linewidth is set to NA. Found solution here
     # https://stackoverflow.com/questions/43417514/getting-rid-of-border-in-pdf-output-for-geom-label-for-ggplot2-in-r
-    alpha = NA, colour = "black", linetype = "solid", size = NA
+    alpha = NA, colour = "black", linetype = "solid", linewidth = NA
   ),
 
   # draw_key = ggplot2::draw_key_blank,
@@ -107,7 +107,7 @@ GeomStripes <- ggplot2::ggproto("GeomStripes", ggplot2::Geom,
           .data$xmin, .data$xmax,
           .data$ymin, .data$ymax,
           .data$odd, .data$even,
-          .data$alpha, .data$colour, .data$linetype, .data$size
+          .data$alpha, .data$colour, .data$linetype, .data$linewidth
         ) %>%
         unique() %>%
         dplyr::arrange(.data$ymin) %>%
