@@ -228,3 +228,49 @@ test_that("forestplot supports multiple name columns as tabular y-axis labels", 
     path = "linear"
   )
 })
+
+test_that("forestplot multi-column name keeps rows with same first-col value distinct", {
+
+  # Two rows share the same first column (gene) but differ in the second (rsid).
+  # They must appear as separate rows in the plot.
+  df_dup <- data.frame(
+    gene   = c("BRCA1", "BRCA1", "TP53"),
+    rsid   = c("rs001", "rs002", "rs003"),
+    beta   = c(0.3, -0.2, 0.1),
+    se     = c(0.05, 0.05, 0.05),
+    pvalue = c(0.01, 0.2, 0.04),
+    stringsAsFactors = FALSE
+  )
+
+  vdiffr::expect_doppelganger(
+    title = "multi-name-dup-firstcol",
+    fig = forestplot(
+      df = df_dup,
+      name = c(gene, rsid),
+      estimate = beta,
+      logodds = FALSE,
+      pvalue = pvalue,
+      title = "Duplicate first-column values"
+    ),
+    path = "linear"
+  )
+})
+
+test_that("forestplot filled_nonsig keeps non-significant points filled", {
+
+  vdiffr::expect_doppelganger(
+    title = "logodds-filled-nonsig",
+    fig = forestplot(
+      df = df_logodds,
+      estimate = beta,
+      logodds = TRUE,
+      colour = study,
+      pvalue = pvalue,
+      psignif = 0.05,
+      alpha = 0.2,
+      filled_nonsig = TRUE,
+      title = "Associations to type 2 diabetes"
+    ),
+    path = "logodds"
+  )
+})

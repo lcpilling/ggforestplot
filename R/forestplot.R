@@ -15,10 +15,13 @@
 #' to be plotted.
 #' @param name the variable (or variables) in \code{df} that contains the y-axis
 #' names. A single variable may be supplied (existing behaviour). When multiple
-#' variables are provided using \code{c(col1, col2, ...)}, the values of each
-#' variable are formatted and combined into a table-like label that is displayed
-#' in place of the usual axis text; the first variable determines row ordering.
-#' A monospace font is applied automatically to preserve column alignment.
+#' variables are provided using \code{c(col1, col2, ...)}, an internally unique
+#' composite key is built from the combination of all supplied columns so that
+#' rows sharing the same first-column value but differing in subsequent columns
+#' (e.g. same gene name, different rsid) are placed on separate rows. The values
+#' of each variable are formatted and combined into a table-like label displayed
+#' in place of the usual axis text; a monospace font is applied automatically to
+#' preserve column alignment.
 #' This argument is automatically \link[rlang:quotation]{quoted} and
 #' \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 #' See Note.
@@ -59,6 +62,11 @@
 #' provided, non-significant entries (as determined by \code{pvalue} and
 #' \code{psignif}) will additionally be drawn with this level of transparency
 #' applied to both the point and the CI lines.
+#' @param filled_nonsig logical (defaults to FALSE). When TRUE, non-significant
+#' entries are drawn as \emph{filled} points (rather than hollow) regardless of
+#' significance. This is most useful in combination with \code{alpha}: the
+#' transparency then serves as the sole visual indicator for non-significance
+#' rather than the hollow/filled distinction.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -149,11 +157,13 @@ forestplot <- function(df,
                        psignif = 0.05,
                        ci = 0.95,
                        alpha = NULL,
+                       filled_nonsig = FALSE,
                        ...) {
 
   # Input checks
   stopifnot(is.data.frame(df))
   stopifnot(is.logical(logodds))
+  stopifnot(is.logical(filled_nonsig))
   if (!is.null(alpha)) {
     stopifnot(is.numeric(alpha), length(alpha) == 1L, alpha >= 0, alpha <= 1)
   }
@@ -171,8 +181,13 @@ forestplot <- function(df,
     col_exprs <- rlang::call_args(name_expr)
     quo_env <- rlang::get_env(name_quo)
     name_quos <- lapply(col_exprs, function(e) rlang::new_quosure(e, quo_env))
-    # First column is the primary name used for y-axis ordering
-    name <- name_quos[[1L]]
+    # Build composite character key from ALL name columns so that rows sharing
+    # the same first-column value but differing in others (e.g. same gene,
+    # different rsid) are treated as distinct y-axis positions.
+    name_cols_df <- dplyr::select(df, !!!name_quos) %>%
+      dplyr::mutate(dplyr::across(dplyr::everything(), as.character))
+    name_key_char <- apply(name_cols_df, 1L, paste, collapse = "\n")
+    df$.name_key <- name_key_char
   } else {
     name <- name_quo
     name_quos <- list(name_quo)
@@ -195,16 +210,30 @@ forestplot <- function(df,
   # Estimate multiplication const for CI
   const <- stats::qnorm(1 - (1 - ci) / 2)
 
-  # Adjust data frame variables
-  df <-
-    df %>%
-    # Convert to a factor to preserve order.
+  # Convert y-axis identifier to an ordered factor for correct row ordering,
+  # then compute derived columns shared by both code paths.
+  if (name_is_multi) {
+    df <- df %>%
+      dplyr::mutate(
+        .name_key = factor(
+          .data$.name_key,
+          levels = unique(.data$.name_key) %>% rev(),
+          ordered = TRUE
+        )
+      )
+  } else {
+    df <- df %>%
+      dplyr::mutate(
+        !!name := factor(
+          !!name,
+          levels = !!name %>% unique() %>% rev(),
+          ordered = TRUE
+        )
+      )
+  }
+
+  df <- df %>%
     dplyr::mutate(
-      !!name := factor(
-        !!name,
-        levels = !!name %>% unique() %>% rev(),
-        ordered = TRUE
-      ),
       # Added here to estimate xbreaks for log odds later
       .xmin = !!estimate - const * !!se,
       .xmax = !!estimate + const * !!se,
@@ -233,8 +262,8 @@ forestplot <- function(df,
       dplyr::mutate(.filled = !!pvalue < !!psignif)
   }
 
-  # If alpha provided, set .alpha to alpha value for non-significant entries
-  # and NA (fully opaque) for significant entries.
+  # If alpha provided, set .alpha based on significance BEFORE any filled_nonsig
+  # override so non-significant entries still receive the requested transparency.
   # .filled = TRUE means significant → NA (opaque); FALSE means non-significant → alpha (transparent)
   if (!is.null(alpha)) {
     df <-
@@ -244,16 +273,24 @@ forestplot <- function(df,
       )
   }
 
+  # If filled_nonsig is TRUE, override .filled so all points remain filled;
+  # the alpha transparency (if set) then serves as the sole visual indicator
+  # of non-significance.
+  if (filled_nonsig) {
+    df <- df %>%
+      dplyr::mutate(.filled = TRUE)
+  }
+
   # Build formatted multi-column y-axis labels when multiple name columns provided
   if (name_is_multi) {
-    # One representative row per unique primary-name value (first occurrence)
-    label_data <- df %>%
-      dplyr::select(!!!name_quos) %>%
-      dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) %>%
-      dplyr::distinct(!!name, .keep_all = TRUE)
+    # One representative row per unique composite key (first occurrence).
+    # Use the pre-factoring character keys stored in name_key_char.
+    label_data <- name_cols_df
+    label_data$.name_key <- name_key_char
+    label_data <- dplyr::distinct(label_data, .name_key, .keep_all = TRUE)
 
     # Pad each column to its max value width for monospace alignment
-    padded_cols <- lapply(seq_along(name_quos), function(i) {
+    padded_cols <- lapply(seq_len(ncol(name_cols_df)), function(i) {
       vals <- label_data[[i]]
       max_w <- max(nchar(vals), na.rm = TRUE)
       formatC(vals, width = max_w, flag = "-")
@@ -266,9 +303,12 @@ forestplot <- function(df,
       character(1L)
     )
 
-    # Named vector: primary name value -> combined label (for scale_y_discrete)
-    y_labels <- setNames(combined_labels, label_data[[1L]])
+    # Named vector: composite key -> combined label (for scale_y_discrete)
+    y_labels <- setNames(combined_labels, label_data$.name_key)
   }
+
+  # Define the y aesthetic variable: composite key for multi, primary column otherwise
+  y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
 
   # Plot
   g <-
@@ -276,7 +316,7 @@ forestplot <- function(df,
       df,
       aes(
         x = !!estimate,
-        y = !!name
+        y = !!y_var
       )
     )
 

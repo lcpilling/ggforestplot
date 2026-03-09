@@ -51,7 +51,13 @@ between 0 and 1 is provided, non-significant entries (determined by `pvalue` and
 `psignif`) are drawn semi-transparent at that alpha level in addition to being
 shown as hollow points.
 - `forestplot()` now accepts multiple column names for the `name` argument via
-`name = c(col1, col2, ...)`. When multiple columns are supplied, their values are
-formatted and combined into a table-like label displayed in the y-axis area
-(first column determines row ordering; monospace font applied automatically for
+`name = c(col1, col2, ...)`. When multiple columns are supplied, an internally
+unique composite key is built from all columns so that rows sharing the same
+first-column value but differing in other columns (e.g. same gene, different
+rsid) are placed on separate y-axis rows. Values are formatted and combined into
+a table-like label in the y-axis area (monospace font applied automatically for
 alignment).
+- `forestplot()` gains a new `filled_nonsig` parameter (default `FALSE`). When
+`TRUE`, non-significant entries are drawn as filled points rather than hollow;
+intended for use with `alpha` so that transparency alone distinguishes
+significant from non-significant entries.
