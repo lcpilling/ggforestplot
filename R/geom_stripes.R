@@ -50,7 +50,7 @@
 #'   # Add custom theme
 #'   theme_forest() +
 #'   # Add striped background
-#'   geom_stripes(odd = "#33333333", even = "#00000000") +
+#'   geom_stripes(odd = "#00000000", even = "#33333333") +
 #'   # Add vertical line at null point
 #'   geom_vline(
 #'     xintercept = 0,
@@ -83,7 +83,7 @@ GeomStripes <- ggplot2::ggproto("GeomStripes", ggplot2::Geom,
 
   default_aes = ggplot2::aes(
     xmin = -Inf, xmax = Inf,
-    odd = "#22222222", even = "#00000000",
+    odd = "#00000000", even = "#22222222",
     # Set 'linewidth' to NA to suppress rectangle borders.
     # When not NA then when *printing in pdf device* borders are there despite
     # requested 0th size. Seems to be some ggplot2 bug caused by grid overriding
