@@ -50,3 +50,8 @@ while `ggforce::facet_col()` is used in examples instead of
 between 0 and 1 is provided, non-significant entries (determined by `pvalue` and
 `psignif`) are drawn semi-transparent at that alpha level in addition to being
 shown as hollow points.
+- `forestplot()` now accepts multiple column names for the `name` argument via
+`name = c(col1, col2, ...)`. When multiple columns are supplied, their values are
+formatted and combined into a table-like label displayed in the y-axis area
+(first column determines row ordering; monospace font applied automatically for
+alignment).

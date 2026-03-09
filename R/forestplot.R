@@ -13,8 +13,13 @@
 #' non-significant results will be displayed as hollow points. Other variables
 #' may be used as aesthetics to define the colour and the shape of the points
 #' to be plotted.
-#' @param name the variable in \code{df} that contains the y-axis
-#' names. This argument is automatically \link[rlang:quotation]{quoted} and
+#' @param name the variable (or variables) in \code{df} that contains the y-axis
+#' names. A single variable may be supplied (existing behaviour). When multiple
+#' variables are provided using \code{c(col1, col2, ...)}, the values of each
+#' variable are formatted and combined into a table-like label that is displayed
+#' in place of the usual axis text; the first variable determines row ordering.
+#' A monospace font is applied automatically to preserve column alignment.
+#' This argument is automatically \link[rlang:quotation]{quoted} and
 #' \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 #' See Note.
 #' @param estimate the variable in \code{df} that contains the values (or log of
@@ -157,7 +162,21 @@ forestplot <- function(df,
   # is not defining the name, estimate etc explicitly.
 
   # Quote input
-  name <- enquo(name)
+  # Check if name is given as c(col1, col2, ...) for multi-column table labels
+  name_quo <- enquo(name)
+  name_expr <- rlang::get_expr(name_quo)
+  name_is_multi <- rlang::is_call(name_expr, "c") &&
+    length(rlang::call_args(name_expr)) > 1L
+  if (name_is_multi) {
+    col_exprs <- rlang::call_args(name_expr)
+    quo_env <- rlang::get_env(name_quo)
+    name_quos <- lapply(col_exprs, function(e) rlang::new_quosure(e, quo_env))
+    # First column is the primary name used for y-axis ordering
+    name <- name_quos[[1L]]
+  } else {
+    name <- name_quo
+    name_quos <- list(name_quo)
+  }
   estimate <- enquo(estimate)
   se <- enquo(se)
   pvalue <- enquo(pvalue)
@@ -223,6 +242,32 @@ forestplot <- function(df,
       dplyr::mutate(
         .alpha = dplyr::if_else(.data$.filled, NA_real_, as.double(alpha))
       )
+  }
+
+  # Build formatted multi-column y-axis labels when multiple name columns provided
+  if (name_is_multi) {
+    # One representative row per unique primary-name value (first occurrence)
+    label_data <- df %>%
+      dplyr::select(!!!name_quos) %>%
+      dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) %>%
+      dplyr::distinct(!!name, .keep_all = TRUE)
+
+    # Pad each column to its max value width for monospace alignment
+    padded_cols <- lapply(seq_along(name_quos), function(i) {
+      vals <- label_data[[i]]
+      max_w <- max(nchar(vals), na.rm = TRUE)
+      formatC(vals, width = max_w, flag = "-")
+    })
+
+    # Combine padded column values into a single string per row
+    combined_labels <- vapply(
+      seq_len(nrow(label_data)),
+      function(i) paste(sapply(padded_cols, `[[`, i), collapse = "  "),
+      character(1L)
+    )
+
+    # Named vector: primary name value -> combined label (for scale_y_discrete)
+    y_labels <- setNames(combined_labels, label_data[[1L]])
   }
 
   # Plot
@@ -379,6 +424,14 @@ forestplot <- function(df,
   }
   if ("xtickbreaks" %in% names(args) & !logodds) {
     g <- g + scale_x_continuous(breaks = args$xtickbreaks)
+  }
+  # Apply formatted multi-column y-axis labels and monospace font for alignment.
+  # "mono" is a portable generic family that R maps to a monospace font on all
+  # platforms (e.g. Courier on Windows/macOS, DejaVu Mono on Linux).
+  if (name_is_multi) {
+    g <- g +
+      ggplot2::scale_y_discrete(labels = y_labels) +
+      ggplot2::theme(axis.text.y = ggplot2::element_text(family = "mono", hjust = 0))
   }
   g
 }

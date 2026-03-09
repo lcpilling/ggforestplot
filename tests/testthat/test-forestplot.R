@@ -204,3 +204,27 @@ test_that("forestplot plots ticks to between 0 and 1 when logodd = TRUE", {
     path = "logodds"
   )
 })
+
+test_that("forestplot supports multiple name columns as tabular y-axis labels", {
+
+  df_multi <-
+    df_linear_associations %>%
+    dplyr::arrange(name) %>%
+    dplyr::filter(dplyr::row_number() < 30) %>%
+    dplyr::mutate(
+      group = dplyr::if_else(grepl("^[A-M]", name), "Lipids", "Metabolites")
+    )
+
+  vdiffr::expect_doppelganger(
+    title = "multi-name-columns",
+    fig = forestplot(
+      df = df_multi,
+      name = c(name, group),
+      estimate = beta,
+      logodds = FALSE,
+      colour = trait,
+      title = "Multi-column name labels"
+    ),
+    path = "linear"
+  )
+})
