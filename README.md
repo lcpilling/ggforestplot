@@ -111,25 +111,6 @@ forestplot(
 
 ![](man/figures/README-unnamed-chunk-3-1.png)<!-- -->
 
-### Add transparency for non-significant results (`alpha`)
-
-``` r
-ggforestplot::forestplot(
-  df = df_linear,
-  name = name,
-  estimate = beta,
-  pvalue = pvalue,
-  logodds = FALSE,
-  colour = trait,
-  alpha = 0.33,
-  filled_nonsig = TRUE,
-  title = "Associations to metabolic traits",
-  xlab = "1-SD increment in cardiometabolic trait per 1-SD increment in biomarker concentration"
-)
-```
-
-![](man/figures/README-unnamed-chunk-4-1.png)<!-- -->
-
 ### Add an estimate table (`est_table`)
 
 Only do this if one estimate per row – too busy if using “colour” or
@@ -150,7 +131,7 @@ ggforestplot::forestplot(
 )
 ```
 
-![](man/figures/README-unnamed-chunk-5-1.png)<!-- -->
+![](man/figures/README-unnamed-chunk-4-1.png)<!-- -->
 
 ### Odds ratios
 
@@ -181,6 +162,38 @@ forestplot(
   logodds = TRUE,
   colour = study,
   shape = study,
+  title = "Associations to type 2 diabetes",
+  xlab = "Odds ratio for incident type 2 diabetes (95% CI)
+  per 1−SD increment in metabolite concentration"
+) +
+  # You may also want to add a manual shape scale to mark meta-analysis with a
+  # diamond shape
+  ggplot2::scale_shape_manual(
+    values = c(23L, 21L, 21L, 21L, 21L),
+    labels = c("Meta-analysis", "NFBC-1997", "DILGOM", "FINRISK-1997", "YFS")
+  )
+```
+
+![](man/figures/README-unnamed-chunk-5-1.png)<!-- -->
+
+### Add transparency for non-significant results (`alpha`)
+
+Helps to draw reader’s eye to significant results, rather than the (much
+wider CIs) non-significant results. Note I also set
+`filled_nonsig = TRUE` as the default when providing a `pvalue` is for
+the shape to be hollow.
+
+``` r
+forestplot(
+  df = df_logodds,
+  estimate = beta,
+  logodds = TRUE,
+  colour = study,
+  shape = study,
+  pvalue = pvalue,
+  psignif = 0.05,
+  alpha = 0.50,
+  filled_nonsig = TRUE,
   title = "Associations to type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
   per 1−SD increment in metabolite concentration"
