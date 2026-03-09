@@ -274,3 +274,37 @@ test_that("forestplot filled_nonsig keeps non-significant points filled", {
     path = "logodds"
   )
 })
+
+test_that("forestplot est_table shows estimate and CI text (linear)", {
+
+  vdiffr::expect_doppelganger(
+    title = "linear-est-table",
+    fig = forestplot(
+      df = df_linear,
+      estimate = beta,
+      logodds = FALSE,
+      colour = trait,
+      est_table = TRUE,
+      title = "Associations to BMI"
+    ),
+    path = "linear"
+  )
+})
+
+test_that("forestplot est_table shows exponentiated estimate and CI (logodds)", {
+
+  vdiffr::expect_doppelganger(
+    title = "logodds-est-table",
+    fig = forestplot(
+      df = df_logodds,
+      estimate = beta,
+      logodds = TRUE,
+      colour = study,
+      pvalue = pvalue,
+      psignif = 0.05,
+      est_table = TRUE,
+      title = "Associations to type 2 diabetes"
+    ),
+    path = "logodds"
+  )
+})

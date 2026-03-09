@@ -61,3 +61,8 @@ alignment).
 `TRUE`, non-significant entries are drawn as filled points rather than hollow;
 intended for use with `alpha` so that transparency alone distinguishes
 significant from non-significant entries.
+- `forestplot()` gains a new `est_table` parameter (default `FALSE`). When
+`TRUE`, a monospace-formatted text column is drawn to the right of the plotting
+area showing the estimate and confidence interval as `"1.50 (1.25 - 1.75)"`.
+For log-odds plots the exponentiated values are displayed. Trailing zeros are
+preserved for consistent alignment.

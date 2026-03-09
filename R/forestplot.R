@@ -67,6 +67,11 @@
 #' significance. This is most useful in combination with \code{alpha}: the
 #' transparency then serves as the sole visual indicator for non-significance
 #' rather than the hollow/filled distinction.
+#' @param est_table logical (defaults to FALSE). When TRUE, a monospace-formatted
+#' text column is drawn to the right of the plotting area showing the estimate
+#' and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
+#' plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
+#' zeros are preserved so all labels align in a monospace font.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -158,12 +163,14 @@ forestplot <- function(df,
                        ci = 0.95,
                        alpha = NULL,
                        filled_nonsig = FALSE,
+                       est_table = FALSE,
                        ...) {
 
   # Input checks
   stopifnot(is.data.frame(df))
   stopifnot(is.logical(logodds))
   stopifnot(is.logical(filled_nonsig))
+  stopifnot(is.logical(est_table))
   if (!is.null(alpha)) {
     stopifnot(is.numeric(alpha), length(alpha) == 1L, alpha >= 0, alpha <= 1)
   }
@@ -252,6 +259,19 @@ forestplot <- function(df,
         .xmin = exp(.data$.xmin),
         .xmax = exp(.data$.xmax),
         !!estimate := exp(!!estimate)
+      )
+  }
+
+  # Build estimate-table label after any exponentiation so the values shown
+  # are on the correct display scale.  sprintf "%.2f" preserves trailing zeros
+  # (e.g. 1.50 not 1.5) for monospace alignment.
+  if (est_table) {
+    df <- df %>%
+      dplyr::mutate(
+        .est_label = sprintf(
+          "%.2f (%.2f - %.2f)",
+          !!estimate, .data$.xmin, .data$.xmax
+        )
       )
   }
 
@@ -456,14 +476,38 @@ forestplot <- function(df,
     args$ylab <- ""
   }
   g <- g + labs(y = args$ylab)
-  if ("xlim" %in% names(args)) {
-    g <- g + coord_cartesian(xlim = args$xlim)
-  }
   if ("ylim" %in% names(args)) {
     g <- g + ylim(args$ylim)
   }
   if ("xtickbreaks" %in% names(args) & !logodds) {
     g <- g + scale_x_continuous(breaks = args$xtickbreaks)
+  }
+  # coord_cartesian: consolidate xlim + clip handling in one call.
+  # clip must be "off" when est_table is TRUE so geom_text renders outside the panel.
+  has_xlim <- "xlim" %in% names(args)
+  if (has_xlim || est_table) {
+    g <- g + coord_cartesian(
+      xlim = if (has_xlim) args$xlim else NULL,
+      clip = if (est_table) "off" else "on"
+    )
+  }
+  # est_table: monospace text labels to the right of the plot panel.
+  # position_dodgev matches the geom_effect position so grouped plots align.
+  # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
+  # keep labels compact relative to the plot rows.
+  if (est_table) {
+    g <- g +
+      ggplot2::geom_text(
+        ggplot2::aes(label = .data$.est_label),
+        x = Inf,
+        hjust = -0.05,
+        family = "mono",
+        size = 3,
+        position = ggstance::position_dodgev(height = 0.5)
+      ) +
+      ggplot2::theme(
+        plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
+      )
   }
   # Apply formatted multi-column y-axis labels and monospace font for alignment.
   # "mono" is a portable generic family that R maps to a monospace font on all
