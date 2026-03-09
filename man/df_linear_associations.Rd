@@ -4,7 +4,8 @@
 \name{df_linear_associations}
 \alias{df_linear_associations}
 \title{Linear Associations of Blood Biomarkers to BMI, HOMA-IR and Fasting Glucose}
-\format{A data frame (tibble) with 687 rows and 5 columns:
+\format{
+A data frame (tibble) with 687 rows and 5 columns:
 \describe{
   \item{name}{Blood biomarker name. Note: glucose is missing as the results
   are adjusted for this biomarker.}
@@ -13,7 +14,8 @@
   \item{beta}{Linear regression coefficient \eqn{\beta}.}
   \item{se}{Standard error.}
   \item{pvalue}{P-value.}
-}}
+}
+}
 \source{
 These data are taken from the Supplementary material of
 A. V. Ahola-Olli et al. (2019).

@@ -15,6 +15,9 @@ forestplot(
   logodds = FALSE,
   psignif = 0.05,
   ci = 0.95,
+  alpha = NULL,
+  filled_nonsig = FALSE,
+  est_table = FALSE,
   ...
 )
 }
@@ -30,8 +33,16 @@ non-significant results will be displayed as hollow points. Other variables
 may be used as aesthetics to define the colour and the shape of the points
 to be plotted.}
 
-\item{name}{the variable in \code{df} that contains the y-axis
-names. This argument is automatically \link[rlang:quotation]{quoted} and
+\item{name}{the variable (or variables) in \code{df} that contains the y-axis
+names. A single variable may be supplied (existing behaviour). When multiple
+variables are provided using \code{c(col1, col2, ...)}, an internally unique
+composite key is built from the combination of all supplied columns so that
+rows sharing the same first-column value but differing in subsequent columns
+(e.g. same gene name, different rsid) are placed on separate rows. The values
+of each variable are formatted and combined into a table-like label displayed
+in place of the usual axis text; a monospace font is applied automatically to
+preserve column alignment.
+This argument is automatically \link[rlang:quotation]{quoted} and
 \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 See Note.}
 
@@ -74,6 +85,24 @@ drawn with a hollow point.}
 
 \item{ci}{A number between 0 and 1 (defaults to 0.95) indicating the type of
 confidence interval to be drawn.}
+
+\item{alpha}{numeric, defaults to NULL (current behaviour: non-significant
+entries are drawn as hollow points only). When a number between 0 and 1 is
+provided, non-significant entries (as determined by \code{pvalue} and
+\code{psignif}) will additionally be drawn with this level of transparency
+applied to both the point and the CI lines.}
+
+\item{filled_nonsig}{logical (defaults to FALSE). When TRUE, non-significant
+entries are drawn as \emph{filled} points (rather than hollow) regardless of
+significance. This is most useful in combination with \code{alpha}: the
+transparency then serves as the sole visual indicator for non-significance
+rather than the hollow/filled distinction.}
+
+\item{est_table}{logical (defaults to FALSE). When TRUE, a monospace-formatted
+text column is drawn to the right of the plotting area showing the estimate
+and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
+plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
+zeros are preserved so all labels align in a monospace font.}
 
 \item{...}{\code{ggplot2} graphical parameters such as \code{title},
 \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.}

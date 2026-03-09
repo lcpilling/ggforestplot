@@ -4,7 +4,8 @@
 \name{df_demo_metabolic_data}
 \alias{df_demo_metabolic_data}
 \title{Simulated Metabolic Data}
-\format{A data frame (tibble) with 1887 rows and 256 columns. \code{id} is a
+\format{
+A data frame (tibble) with 1887 rows and 256 columns. \code{id} is a
 character variable with the ID number of fictional individual; \code{gender}
 is a character variable with the gender information on each individual;
 \code{baseline_age} is a numeric variable with the age at the time of
@@ -13,7 +14,8 @@ at the time of blood draw; \code{incident_diabetes} is a numeric variable
 with values 1 or 0 for whether the diabetes event occured or not during the
 observed time, respectively; \code{age_at_diabetes} is a numeric variable
 with the age at the end of the study and the rest of the variables are numeric
-containing the machine readable names of Nightingale NMR blood biomarkers.}
+containing the machine readable names of Nightingale NMR blood biomarkers.
+}
 \source{
 Simulated NMR data; Nightingale Health Ltd, \url{https://nightingalehealth.com/}.
 }

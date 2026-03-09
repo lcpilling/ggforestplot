@@ -4,7 +4,8 @@
 \name{df_logodds_associations}
 \alias{df_logodds_associations}
 \title{Odds Ratios of Blood Biomarkers with Incident Type 2 Diabetes}
-\format{A data frame (tibble) with 228 rows and 5 columns:
+\format{
+A data frame (tibble) with 228 rows and 5 columns:
 \describe{
   \item{name}{Biomarker abbreviation.}
   \item{study}{Short description of the association type, here the cohort
@@ -13,7 +14,8 @@
   \item{se}{Standard error.}
   \item{pvalue}{P-value.}
   \item{n}{Sample size.}
-}}
+}
+}
 \source{
 These data are taken from the Supplementary material of
 A. V. Ahola-Olli et al. (2019).

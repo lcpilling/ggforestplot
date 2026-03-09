@@ -11,7 +11,7 @@ theme_forest(
 )
 }
 \arguments{
-\item{base_size}{base font size}
+\item{base_size}{base font size, given in pts.}
 
 \item{base_line_size}{base size for line elements}
 

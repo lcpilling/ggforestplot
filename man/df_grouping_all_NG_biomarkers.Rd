@@ -4,7 +4,8 @@
 \name{df_grouping_all_NG_biomarkers}
 \alias{df_grouping_all_NG_biomarkers}
 \title{Example of Biomarker Grouping Data Frames for Nightingale Biomarkers}
-\format{A data frame (tibble) with 2 rows and 2 columns:
+\format{
+A data frame (tibble) with 2 rows and 2 columns:
 \describe{
   \item{version}{Biomarker platform version.}
   \item{layout}{A data frame (tibble) defining layout:
@@ -18,7 +19,8 @@
   layout, see \code{\link{plot_all_NG_biomarkers}}.
   }
 }
-}}
+}
+}
 \usage{
 df_grouping_all_NG_biomarkers
 }

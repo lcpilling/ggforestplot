@@ -60,7 +60,7 @@ other values are deprecated.}
 \item{na.value}{Missing values will be replaced with this value.}
 
 \item{guide}{A function used to create a guide or its name. See
-\code{\link[ggplot2:guides]{guides()}} for more info.}
+\code{\link[ggplot2:guides]{guides()}} for more information.}
 }
 \description{
 Colour scale constructor for Nightingale colours
