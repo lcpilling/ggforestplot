@@ -21,7 +21,10 @@
 #' (e.g. same gene name, different rsid) are placed on separate rows. The values
 #' of each variable are formatted and combined into a table-like label displayed
 #' in place of the usual axis text; a monospace font is applied automatically to
-#' preserve column alignment.
+#' preserve column alignment. Columns whose values are all integers (either
+#' declared as \code{integer} type, or \code{numeric} with no fractional part)
+#' are right-aligned automatically so that numeric quantities such as sample
+#' sizes (\code{n}) align on the right; all other columns are left-aligned.
 #' This argument is automatically \link[rlang:quotation]{quoted} and
 #' \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 #' See Note.
@@ -69,9 +72,11 @@
 #' rather than the hollow/filled distinction.
 #' @param est_table logical (defaults to FALSE). When TRUE, a monospace-formatted
 #' text column is drawn to the right of the plotting area showing the estimate
-#' and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
-#' plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
-#' zeros are preserved so all labels align in a monospace font.
+#' and its confidence interval as two right-aligned columns. Each column is
+#' padded to a consistent width so that decimal points align regardless of
+#' whether values are positive or negative — e.g. \code{" 0.01"} and
+#' \code{"-0.01"} share the same decimal position. For log-odds plots
+#' (\code{logodds = TRUE}) the exponentiated values are shown.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -188,10 +193,25 @@ forestplot <- function(df,
     col_exprs <- rlang::call_args(name_expr)
     quo_env <- rlang::get_env(name_quo)
     name_quos <- lapply(col_exprs, function(e) rlang::new_quosure(e, quo_env))
+    # Inspect original column types before coercion to detect integer columns.
+    # A column is treated as "all-integer" when it is declared as integer, or
+    # when it is numeric and every finite value is a whole number (no fractional
+    # part).  Such columns will be right-aligned in the y-axis label table so
+    # that numeric quantities like sample sizes align on the right rather than
+    # the left.
+    name_cols_orig <- dplyr::select(df, !!!name_quos)
+    col_is_integer <- vapply(name_cols_orig, function(x) {
+      if (is.integer(x)) return(TRUE)
+      if (is.numeric(x)) {
+        finite_x <- x[is.finite(x)]
+        return(length(finite_x) > 0L && all(finite_x == floor(finite_x)))
+      }
+      FALSE
+    }, logical(1L))
     # Build composite character key from ALL name columns so that rows sharing
     # the same first-column value but differing in others (e.g. same gene,
     # different rsid) are treated as distinct y-axis positions.
-    name_cols_df <- dplyr::select(df, !!!name_quos) %>%
+    name_cols_df <- name_cols_orig %>%
       dplyr::mutate(dplyr::across(dplyr::everything(), as.character))
     name_key_char <- apply(name_cols_df, 1L, paste, collapse = "\n")
     df$.name_key <- name_key_char
@@ -263,16 +283,18 @@ forestplot <- function(df,
   }
 
   # Build estimate-table label after any exponentiation so the values shown
-  # are on the correct display scale.  sprintf "%.2f" preserves trailing zeros
-  # (e.g. 1.50 not 1.5) for monospace alignment.
+  # are on the correct display scale.  Two right-aligned monospace columns
+  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
+  # so that " 0.01" and "-0.01" share the same decimal position.
   if (est_table) {
-    df <- df %>%
-      dplyr::mutate(
-        .est_label = sprintf(
-          "%.2f (%.2f - %.2f)",
-          !!estimate, .data$.xmin, .data$.xmax
-        )
-      )
+    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
+    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
+    # Right-align each column to its maximum string width (formatC with no flag
+    # pads on the left with spaces, i.e. right-justifies).
+    df$.est_label <- paste(
+      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
+      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
+    )
   }
 
   # If pvalue provided, adjust .filled variable
@@ -309,11 +331,14 @@ forestplot <- function(df,
     label_data$.name_key <- name_key_char
     label_data <- dplyr::distinct(label_data, .name_key, .keep_all = TRUE)
 
-    # Pad each column to its max value width for monospace alignment
+    # Pad each column to its max value width for monospace alignment.
+    # Integer columns are right-aligned (no flag) so numeric quantities such as
+    # sample sizes align on the right; all other columns are left-aligned.
     padded_cols <- lapply(seq_len(ncol(name_cols_df)), function(i) {
       vals <- label_data[[i]]
       max_w <- max(nchar(vals), na.rm = TRUE)
-      formatC(vals, width = max_w, flag = "-")
+      align_flag <- if (col_is_integer[i]) "" else "-"
+      formatC(vals, width = max_w, flag = align_flag)
     })
 
     # Combine padded column values into a single string per row

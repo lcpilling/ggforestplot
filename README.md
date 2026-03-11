@@ -1,8 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-    ## Warning: package 'magrittr' was built under R version 4.4.3
-
 <br>
 
 <div style="text-align:left">
@@ -89,16 +87,8 @@ to insulin resistance (HOMA-IR), fasting glucose and Body Mass Index
 # Load tidyverse and ggforestplot
 # install.packages("tidyverse")
 library(tidyverse)
-#> Warning: package 'tidyverse' was built under R version 4.4.3
-#> Warning: package 'ggplot2' was built under R version 4.4.3
-#> Warning: package 'tibble' was built under R version 4.4.3
-#> Warning: package 'tidyr' was built under R version 4.4.3
-#> Warning: package 'readr' was built under R version 4.4.2
-#> Warning: package 'purrr' was built under R version 4.4.3
-#> Warning: package 'dplyr' was built under R version 4.4.3
-#> Warning: package 'stringr' was built under R version 4.4.3
-#> Warning: package 'forcats' was built under R version 4.4.2
-#> Warning: package 'lubridate' was built under R version 4.4.1
+#> Warning: package 'readr' was built under R version 4.3.3
+#> Warning: package 'lubridate' was built under R version 4.3.3
 library(ggforestplot)
 
 # Get subset of example, linear associations, data frame
@@ -249,7 +239,6 @@ Requires {ggforce} package
 
 ``` r
 library(ggforce)
-#> Warning: package 'ggforce' was built under R version 4.4.3
 
 # add grouping variable
 df_linear_groups <-   ggforestplot::df_linear_associations |>
@@ -306,14 +295,14 @@ forestplot(
 
 forestplot(
   df = df_logodds |> dplyr::arrange(forcats::fct_rev(study)),
-  name = study,
+  name = c(study, n),
   estimate = beta,
   logodds = TRUE,
   shape = study,
   pvalue = pvalue,
   psignif = 0.05,
-  alpha = 0.50,
-  filled_nonsig = TRUE,
+  alpha = 0.40,
+  filled_nonsig = FALSE,
   est_table = TRUE,
   title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
