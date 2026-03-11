@@ -40,32 +40,32 @@ Description: A collection of functions, based on ggplot2, to plot forestplots
 Depends:
     R (>= 3.5.0)
 Imports:
-    broom,
     dplyr (>= 0.8.0),
-    generics,
     ggforce (>= 0.5.0),
     ggplot2 (>= 3.4.0),
-    ggplotify,
     ggstance,
     grid,
-    gridExtra,
-    lazyeval,
     magrittr,
+    rlang,
+    scales
+Suggests:
+    broom,
+    generics,
+    ggplotify,
+    gridExtra,
+    knitr, 
+    lazyeval,
     patchwork,
     purrr,
-    rlang,
-    scales,
-    stringr,
-    survival,
-    tibble,
-    tidyr (>= 1.0.0),
-    tidyselect
-Suggests:
-    knitr, 
     readr,
     rmarkdown,
     tidyverse,
     testthat,
+    stringr,
+    survival,
+    tibble,
+    tidyr (>= 1.0.0),
+    tidyselect,
     vdiffr
 License: MIT + file LICENSE
 BugReports: https://github.com/nightingalehealth/ggforestplot/issues
