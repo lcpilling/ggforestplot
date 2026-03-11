@@ -256,6 +256,32 @@ test_that("forestplot multi-column name keeps rows with same first-col value dis
   )
 })
 
+test_that("forestplot multi-column name right-aligns integer columns", {
+
+  # An integer column (n = sample size) must be right-aligned so that the
+  # digits line up on the right while the study-name column remains left-aligned.
+  df_int <- data.frame(
+    study  = c("Study A", "Study B", "Study C"),
+    n      = c(100L, 1000L, 50L),
+    beta   = c(0.3, -0.2, 0.1),
+    se     = c(0.05, 0.05, 0.05),
+    stringsAsFactors = FALSE
+  )
+
+  vdiffr::expect_doppelganger(
+    title = "multi-name-integer-col",
+    fig = forestplot(
+      df = df_int,
+      name = c(study, n),
+      estimate = beta,
+      logodds = FALSE,
+      title = "Integer column right-aligned"
+    ),
+    path = "linear"
+  )
+})
+
+
 test_that("forestplot filled_nonsig keeps non-significant points filled", {
 
   vdiffr::expect_doppelganger(

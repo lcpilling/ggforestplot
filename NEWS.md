@@ -56,7 +56,8 @@ unique composite key is built from all columns so that rows sharing the same
 first-column value but differing in other columns (e.g. same gene, different
 rsid) are placed on separate y-axis rows. Values are formatted and combined into
 a table-like label in the y-axis area (monospace font applied automatically for
-alignment).
+alignment). Columns whose values are all integers (e.g. a sample-size `n`
+column) are right-aligned automatically; all other columns are left-aligned.
 - `forestplot()` gains a new `filled_nonsig` parameter (default `FALSE`). When
 `TRUE`, non-significant entries are drawn as filled points rather than hollow;
 intended for use with `alpha` so that transparency alone distinguishes
