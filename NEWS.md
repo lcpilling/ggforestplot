@@ -69,3 +69,6 @@ area showing the estimate and confidence interval as two right-aligned columns
 consistent width so that decimal points align regardless of sign — useful for
 linear-regression results where some values are negative. For log-odds plots the
 exponentiated values are displayed.
+- Remove analysis scripts
+- Remove dependencies not required by `forestplot`
+- Remove docs and add to gitignore
