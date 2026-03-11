@@ -41,7 +41,10 @@ rows sharing the same first-column value but differing in subsequent columns
 (e.g. same gene name, different rsid) are placed on separate rows. The values
 of each variable are formatted and combined into a table-like label displayed
 in place of the usual axis text; a monospace font is applied automatically to
-preserve column alignment.
+preserve column alignment. Columns whose values are all integers (either
+declared as \code{integer} type, or \code{numeric} with no fractional part)
+are right-aligned automatically so that numeric quantities such as sample
+sizes (\code{n}) align on the right; all other columns are left-aligned.
 This argument is automatically \link[rlang:quotation]{quoted} and
 \link[rlang:eval_tidy]{evaluated} in the context of the \code{df} data frame.
 See Note.}
@@ -100,9 +103,11 @@ rather than the hollow/filled distinction.}
 
 \item{est_table}{logical (defaults to FALSE). When TRUE, a monospace-formatted
 text column is drawn to the right of the plotting area showing the estimate
-and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
-plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
-zeros are preserved so all labels align in a monospace font.}
+and its confidence interval as two right-aligned columns. Each column is
+padded to a consistent width so that decimal points align regardless of
+whether values are positive or negative — e.g. \code{" 0.01"} and
+\code{"-0.01"} share the same decimal position. For log-odds plots
+(\code{logodds = TRUE}) the exponentiated values are shown.}
 
 \item{...}{\code{ggplot2} graphical parameters such as \code{title},
 \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.}
