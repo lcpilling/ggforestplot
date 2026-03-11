@@ -78,7 +78,7 @@ datasets, which are also included in the package (see [A. V. Ahola-Olli et al. (
 Plot a vertical forestplot for linear associations of blood biomarkers to 
 insulin resistance (HOMA-IR), fasting glucose and Body Mass Index (BMI).
 
-```{r}
+```{r, fig.height = 6, fig.width = 8}
 # Load tidyverse and ggforestplot
 # install.packages("tidyverse")
 library(tidyverse)
@@ -106,7 +106,7 @@ forestplot(
 
 Only do this if one estimate per row -- too busy if using "colour" or "shape"
 
-```{r, fig.height = 8}
+```{r, fig.height = 4, fig.width = 8}
 ggforestplot::forestplot(
   df = df_linear |> filter(trait=="BMI"),
   name = name,
@@ -126,7 +126,7 @@ ggforestplot::forestplot(
 Plot a vertical forestplot for odds ratios of blood biomarkers with risk for 
 future type 2 diabetes; visualize all 4 available cohorts and their meta-analysis.
 
-```{r, fig.height = 8}
+```{r, fig.height = 5, fig.width = 8}
 # Get subset of example, log odds ratios, data frame
 df_logodds <-
   df_logodds_associations %>%
@@ -149,7 +149,7 @@ forestplot(
   logodds = TRUE,
   colour = study,
   shape = study,
-  title = "Associations to type 2 diabetes",
+  title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
   per 1−SD increment in metabolite concentration"
 ) +
@@ -168,7 +168,7 @@ Helps to draw reader's eye to significant results, rather than the
 (much wider CIs) non-significant results. Note I also set `filled_nonsig = TRUE`
 as the default when providing a `pvalue` is for the shape to be hollow.
 
-```{r, fig.height = 8}
+```{r, fig.height = 5, fig.width = 8}
 forestplot(
   df = df_logodds,
   estimate = beta,
@@ -179,7 +179,7 @@ forestplot(
   psignif = 0.05,
   alpha = 0.50,
   filled_nonsig = TRUE,
-  title = "Associations to type 2 diabetes",
+  title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
   per 1−SD increment in metabolite concentration"
 ) +
@@ -194,7 +194,7 @@ forestplot(
 
 #### Multi-column y-axis labels (`name = c(...)`)
 
-```{r, fig.height = 8}
+```{r, fig.height = 5, fig.width = 8}
 # Forestplot
 forestplot(
   df = df_logodds,
@@ -220,7 +220,7 @@ forestplot(
 
 Requires {ggforce} package
 
-```{r, fig.height = 8}
+```{r, fig.height = 8, fig.width = 8}
 library(ggforce)
 
 # add grouping variable
@@ -247,10 +247,57 @@ forestplot(
   )
 ```
 
+#### All together now!
+
+```{r, fig.height = 4, fig.width = 8}
+
+forestplot(
+  df = df_logodds |> dplyr::filter(study=="Meta-analysis"),
+  name = c(name, abbreviation),
+  estimate = beta,
+  logodds = TRUE,
+  shape = study,
+  pvalue = pvalue,
+  psignif = 0.05,
+  alpha = 0.50,
+  filled_nonsig = TRUE,
+  est_table = TRUE,
+  title = "Associations with type 2 diabetes",
+  xlab = "Odds ratio for incident type 2 diabetes (95% CI)
+  per 1−SD increment in metabolite concentration"
+) +
+  ggplot2::scale_shape_manual(values = c(23L)) +
+	theme(legend.position = "none")
+
+```
 
 
+```{r, fig.height = 10, fig.width = 8}
 
+forestplot(
+  df = df_logodds |> dplyr::arrange(forcats::fct_rev(study)),
+  name = study,
+  estimate = beta,
+  logodds = TRUE,
+  shape = study,
+  pvalue = pvalue,
+  psignif = 0.05,
+  alpha = 0.50,
+  filled_nonsig = TRUE,
+  est_table = TRUE,
+  title = "Associations with type 2 diabetes",
+  xlab = "Odds ratio for incident type 2 diabetes (95% CI)
+  per 1−SD increment in metabolite concentration"
+) +
+  ggforce::facet_col(
+    facets = ~name,
+    scales = "free_y",
+    space = "free"
+  ) +
+  ggplot2::scale_shape_manual(
+    values = c(23L, 21L, 21L, 21L, 21L)
+  ) +
+  theme(legend.position = "none")
 
-
-
+```
 

@@ -1,6 +1,8 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+    ## Warning: package 'magrittr' was built under R version 4.4.3
+
 <br>
 
 <div style="text-align:left">
@@ -87,8 +89,16 @@ to insulin resistance (HOMA-IR), fasting glucose and Body Mass Index
 # Load tidyverse and ggforestplot
 # install.packages("tidyverse")
 library(tidyverse)
-#> Warning: package 'readr' was built under R version 4.3.3
-#> Warning: package 'lubridate' was built under R version 4.3.3
+#> Warning: package 'tidyverse' was built under R version 4.4.3
+#> Warning: package 'ggplot2' was built under R version 4.4.3
+#> Warning: package 'tibble' was built under R version 4.4.3
+#> Warning: package 'tidyr' was built under R version 4.4.3
+#> Warning: package 'readr' was built under R version 4.4.2
+#> Warning: package 'purrr' was built under R version 4.4.3
+#> Warning: package 'dplyr' was built under R version 4.4.3
+#> Warning: package 'stringr' was built under R version 4.4.3
+#> Warning: package 'forcats' was built under R version 4.4.2
+#> Warning: package 'lubridate' was built under R version 4.4.1
 library(ggforestplot)
 
 # Get subset of example, linear associations, data frame
@@ -162,7 +172,7 @@ forestplot(
   logodds = TRUE,
   colour = study,
   shape = study,
-  title = "Associations to type 2 diabetes",
+  title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
   per 1−SD increment in metabolite concentration"
 ) +
@@ -194,7 +204,7 @@ forestplot(
   psignif = 0.05,
   alpha = 0.50,
   filled_nonsig = TRUE,
-  title = "Associations to type 2 diabetes",
+  title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
   per 1−SD increment in metabolite concentration"
 ) +
@@ -239,6 +249,7 @@ Requires {ggforce} package
 
 ``` r
 library(ggforce)
+#> Warning: package 'ggforce' was built under R version 4.4.3
 
 # add grouping variable
 df_linear_groups <-   ggforestplot::df_linear_associations |>
@@ -265,3 +276,58 @@ forestplot(
 ```
 
 ![](man/figures/README-unnamed-chunk-8-1.png)<!-- -->
+
+#### All together now!
+
+``` r
+
+forestplot(
+  df = df_logodds |> dplyr::filter(study=="Meta-analysis"),
+  name = c(name, abbreviation),
+  estimate = beta,
+  logodds = TRUE,
+  shape = study,
+  pvalue = pvalue,
+  psignif = 0.05,
+  alpha = 0.50,
+  filled_nonsig = TRUE,
+  est_table = TRUE,
+  title = "Associations with type 2 diabetes",
+  xlab = "Odds ratio for incident type 2 diabetes (95% CI)
+  per 1−SD increment in metabolite concentration"
+) +
+  ggplot2::scale_shape_manual(values = c(23L)) +
+    theme(legend.position = "none")
+```
+
+![](man/figures/README-unnamed-chunk-9-1.png)<!-- -->
+
+``` r
+
+forestplot(
+  df = df_logodds |> dplyr::arrange(forcats::fct_rev(study)),
+  name = study,
+  estimate = beta,
+  logodds = TRUE,
+  shape = study,
+  pvalue = pvalue,
+  psignif = 0.05,
+  alpha = 0.50,
+  filled_nonsig = TRUE,
+  est_table = TRUE,
+  title = "Associations with type 2 diabetes",
+  xlab = "Odds ratio for incident type 2 diabetes (95% CI)
+  per 1−SD increment in metabolite concentration"
+) +
+  ggforce::facet_col(
+    facets = ~name,
+    scales = "free_y",
+    space = "free"
+  ) +
+  ggplot2::scale_shape_manual(
+    values = c(23L, 21L, 21L, 21L, 21L)
+  ) +
+  theme(legend.position = "none")
+```
+
+![](man/figures/README-unnamed-chunk-10-1.png)<!-- -->
