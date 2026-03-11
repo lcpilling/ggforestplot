@@ -69,9 +69,11 @@
 #' rather than the hollow/filled distinction.
 #' @param est_table logical (defaults to FALSE). When TRUE, a monospace-formatted
 #' text column is drawn to the right of the plotting area showing the estimate
-#' and its confidence interval as \code{"1.50 (1.25 - 1.75)"}. For log-odds
-#' plots (\code{logodds = TRUE}) the exponentiated values are shown. Trailing
-#' zeros are preserved so all labels align in a monospace font.
+#' and its confidence interval as two right-aligned columns. Each column is
+#' padded to a consistent width so that decimal points align regardless of
+#' whether values are positive or negative — e.g. \code{" 0.01"} and
+#' \code{"-0.01"} share the same decimal position. For log-odds plots
+#' (\code{logodds = TRUE}) the exponentiated values are shown.
 #' @param ... \code{ggplot2} graphical parameters such as \code{title},
 #' \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.
 #' @return A \code{ggplot} object.
@@ -263,16 +265,18 @@ forestplot <- function(df,
   }
 
   # Build estimate-table label after any exponentiation so the values shown
-  # are on the correct display scale.  sprintf "%.2f" preserves trailing zeros
-  # (e.g. 1.50 not 1.5) for monospace alignment.
+  # are on the correct display scale.  Two right-aligned monospace columns
+  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
+  # so that " 0.01" and "-0.01" share the same decimal position.
   if (est_table) {
-    df <- df %>%
-      dplyr::mutate(
-        .est_label = sprintf(
-          "%.2f (%.2f - %.2f)",
-          !!estimate, .data$.xmin, .data$.xmax
-        )
-      )
+    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
+    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
+    # Right-align each column to its maximum string width (formatC with no flag
+    # pads on the left with spaces, i.e. right-justifies).
+    df$.est_label <- paste(
+      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
+      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
+    )
   }
 
   # If pvalue provided, adjust .filled variable

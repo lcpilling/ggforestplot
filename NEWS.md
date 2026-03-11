@@ -63,6 +63,8 @@ intended for use with `alpha` so that transparency alone distinguishes
 significant from non-significant entries.
 - `forestplot()` gains a new `est_table` parameter (default `FALSE`). When
 `TRUE`, a monospace-formatted text column is drawn to the right of the plotting
-area showing the estimate and confidence interval as `"1.50 (1.25 - 1.75)"`.
-For log-odds plots the exponentiated values are displayed. Trailing zeros are
-preserved for consistent alignment.
+area showing the estimate and confidence interval as two right-aligned columns
+(e.g. estimate `" 0.01"` and CI `"(0.00, 0.02)"`). Each column is padded to a
+consistent width so that decimal points align regardless of sign — useful for
+linear-regression results where some values are negative. For log-odds plots the
+exponentiated values are displayed.
