@@ -276,14 +276,14 @@ forestplot(
 
 forestplot(
   df = df_logodds |> dplyr::arrange(forcats::fct_rev(study)),
-  name = study,
+  name = c(study, n),
   estimate = beta,
   logodds = TRUE,
   shape = study,
   pvalue = pvalue,
   psignif = 0.05,
-  alpha = 0.50,
-  filled_nonsig = TRUE,
+  alpha = 0.40,
+  filled_nonsig = FALSE,
   est_table = TRUE,
   title = "Associations with type 2 diabetes",
   xlab = "Odds ratio for incident type 2 diabetes (95% CI)
