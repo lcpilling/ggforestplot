@@ -338,6 +338,7 @@ forestplot <- function(df,
       vals <- label_data[[i]]
       max_w <- max(nchar(vals), na.rm = TRUE)
       align_flag <- if (col_is_integer[i]) "" else "-"
+      vals <- scales::comma(vals) # if integer then format with commas
       formatC(vals, width = max_w, flag = align_flag)
     })
 
