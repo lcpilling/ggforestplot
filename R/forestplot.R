@@ -319,7 +319,7 @@ forestplot <- function(df,
       })
       df$.est_table_group <- do.call(
         interaction,
-        c(est_table_group_vars, list(drop = TRUE, lex.order = TRUE))
+        c(est_table_group_vars, list(drop = FALSE, lex.order = TRUE))
       )
     }
   }
