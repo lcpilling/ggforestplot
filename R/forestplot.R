@@ -224,6 +224,7 @@ forestplot <- function(df,
   pvalue <- enquo(pvalue)
   colour <- enquo(colour)
   shape <- enquo(shape)
+  has_grouping <- !quo_is_null(colour) || !quo_is_null(shape)
   
   args <- list(...)
 
@@ -280,21 +281,6 @@ forestplot <- function(df,
         .xmax = exp(.data$.xmax),
         !!estimate := exp(!!estimate)
       )
-  }
-
-  # Build estimate-table label after any exponentiation so the values shown
-  # are on the correct display scale.  Two right-aligned monospace columns
-  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
-  # so that " 0.01" and "-0.01" share the same decimal position.
-  if (est_table) {
-    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
-    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
-    # Right-align each column to its maximum string width (formatC with no flag
-    # pads on the left with spaces, i.e. right-justifies).
-    df$.est_label <- paste(
-      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
-      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
-    )
   }
 
   # If pvalue provided, adjust .filled variable
@@ -354,8 +340,58 @@ forestplot <- function(df,
 
   # Define the y aesthetic variable: composite key for multi, primary column otherwise
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
+  needs_group_dodge <- FALSE
+  if (has_grouping) {
+    dodge_group_quos <- c(
+      if (!quo_is_null(colour)) list(colour) else list(),
+      if (!quo_is_null(shape)) list(shape) else list()
+    )
+    dodge_group_frame <- df %>%
+      dplyr::select(!!y_var, !!!dodge_group_quos)
+    dodge_group_data <- dodge_group_frame %>%
+      dplyr::filter(!dplyr::if_all(-1, is.na))
+    dodge_group_counts <- dodge_group_data %>%
+      dplyr::distinct() %>%
+      dplyr::count(!!y_var, name = ".n_groups")
+    missing_group_counts <- dodge_group_frame %>%
+      dplyr::filter(dplyr::if_all(-1, is.na)) %>%
+      dplyr::count(!!y_var, name = ".n_missing")
+    dodge_count_summary <- dplyr::full_join(
+      dodge_group_counts,
+      missing_group_counts,
+      by = names(dodge_group_counts)[1]
+    )
+    dodge_count_summary$.n_groups[is.na(dodge_count_summary$.n_groups)] <- 0L
+    dodge_count_summary$.n_missing[is.na(dodge_count_summary$.n_missing)] <- 0L
+    needs_group_dodge <- any(
+      (dodge_count_summary$.n_groups + dodge_count_summary$.n_missing) > 1L
+    )
+    if (needs_group_dodge) {
+      plot_group_quos <- c(list(y_var), dodge_group_quos)
+      plot_group_expr <- rlang::expr(
+        interaction(!!!plot_group_quos, drop = TRUE, lex.order = TRUE)
+      )
+    }
+  }
+
+  # Build estimate-table label after any exponentiation so the values shown
+  # are on the correct display scale.  Two right-aligned monospace columns
+  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
+  # so that " 0.01" and "-0.01" share the same decimal position.
+  if (est_table) {
+    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
+    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
+    # Right-align each column to its maximum string width (formatC with no flag
+    # pads on the left with spaces, i.e. right-justifies).
+    df$.est_label <- paste(
+      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
+      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
+    )
+    df$.est_table_x <- Inf
+  }
 
   # Plot
+  effect_position <- ggstance::position_dodgev(height = 0.5)
   g <-
     ggplot2::ggplot(
       df,
@@ -404,22 +440,45 @@ forestplot <- function(df,
   # Build aesthetics for geom_effect; include per-row alpha when requested
   effect_aes <-
     if (is.null(alpha)) {
-      ggplot2::aes(
-        xmin = .data$.xmin,
-        xmax = .data$.xmax,
-        colour = !!colour,
-        shape = !!shape,
-        filled = .data$.filled
-      )
+      if (needs_group_dodge) {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          group = !!plot_group_expr,
+          filled = .data$.filled
+        )
+      } else {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          filled = .data$.filled
+        )
+      }
     } else {
-      ggplot2::aes(
-        xmin = .data$.xmin,
-        xmax = .data$.xmax,
-        colour = !!colour,
-        shape = !!shape,
-        filled = .data$.filled,
-        alpha = .data$.alpha
-      )
+      if (needs_group_dodge) {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          group = !!plot_group_expr,
+          filled = .data$.filled,
+          alpha = .data$.alpha
+        )
+      } else {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          filled = .data$.filled,
+          alpha = .data$.alpha
+        )
+      }
     }
 
   g <-
@@ -427,7 +486,7 @@ forestplot <- function(df,
     # And point+errorbars
     geom_effect(
       effect_aes,
-      position = ggstance::position_dodgev(height = 0.5)
+      position = effect_position
     ) +
     # Define the shapes to be used manually
     ggplot2::scale_shape_manual(values = c(21L, 22L, 23L, 24L, 25L)) +
@@ -517,21 +576,28 @@ forestplot <- function(df,
     )
   }
   # est_table: monospace text labels to the right of the plot panel.
-  # position = "identity" is used here because x = Inf is a constant (not a
-  # mapped aesthetic); position_dodgev requires a mapped x aesthetic and would
-  # error with "Neither x nor xmax defined".  One label per y-level is correct
-  # for the est_table column regardless of the number of colour/shape groups.
+  # When colour/shape groups create multiple dodged rows per y-level, apply the
+  # same vertical dodge so each estimate label aligns with its own point/CI.
+  # Mapping x to an explicit Inf column allows position_dodgev to work while
+  # still anchoring the text against the right-hand plot boundary.
   # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
   # keep labels compact relative to the plot rows.
   if (est_table) {
+    est_table_mapping_args <- list(
+      x = rlang::expr(.data$.est_table_x),
+      label = rlang::expr(.data$.est_label)
+    )
+    if (needs_group_dodge) {
+      est_table_mapping_args$group <- plot_group_expr
+    }
+    est_table_mapping <- do.call(ggplot2::aes, est_table_mapping_args)
     g <- g +
       ggplot2::geom_text(
-        ggplot2::aes(label = .data$.est_label),
-        x = Inf,
+        mapping = est_table_mapping,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = "identity"
+        position = if (needs_group_dodge) effect_position else "identity"
       ) +
       ggplot2::theme(
         plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
