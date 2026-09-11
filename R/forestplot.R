@@ -283,44 +283,6 @@ forestplot <- function(df,
       )
   }
 
-  # Build estimate-table label after any exponentiation so the values shown
-  # are on the correct display scale.  Two right-aligned monospace columns
-  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
-  # so that " 0.01" and "-0.01" share the same decimal position.
-  if (est_table) {
-    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
-    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
-    # Right-align each column to its maximum string width (formatC with no flag
-    # pads on the left with spaces, i.e. right-justifies).
-    df$.est_label <- paste(
-      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
-      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
-    )
-    df$.est_table_x <- Inf
-    if (has_grouping) {
-      est_table_group_quos <- c(
-        if (!quo_is_null(colour)) list(colour) else list(),
-        if (!quo_is_null(shape)) list(shape) else list()
-      )
-      est_table_group_vars <- c(
-        list(if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)),
-        unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
-      )
-      est_table_group_vars <- lapply(est_table_group_vars, function(x) {
-        if (is.factor(x)) {
-          return(addNA(x))
-        }
-        x_chr <- as.character(x)
-        x_chr[is.na(x_chr)] <- "<NA>"
-        factor(x_chr, levels = unique(x_chr))
-      })
-      df$.est_table_group <- do.call(
-        interaction,
-        c(est_table_group_vars, list(drop = TRUE, lex.order = TRUE))
-      )
-    }
-  }
-
   # If pvalue provided, adjust .filled variable
   if (!quo_is_null(pvalue)) {
     df <-
@@ -379,6 +341,43 @@ forestplot <- function(df,
   # Define the y aesthetic variable: composite key for multi, primary column otherwise
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
 
+  if (has_grouping) {
+    plot_group_quos <- c(
+      list(y_var),
+      if (!quo_is_null(colour)) list(colour) else list(),
+      if (!quo_is_null(shape)) list(shape) else list()
+    )
+    plot_group_vars <- unname(as.list(dplyr::select(df, !!!plot_group_quos)))
+    plot_group_vars <- lapply(plot_group_vars, function(x) {
+      if (is.factor(x)) {
+        return(addNA(x))
+      }
+      x_chr <- as.character(x)
+      x_chr[is.na(x_chr)] <- "<NA>"
+      factor(x_chr, levels = unique(x_chr))
+    })
+    df$.plot_group <- do.call(
+      interaction,
+      c(plot_group_vars, list(drop = TRUE, lex.order = TRUE))
+    )
+  }
+
+  # Build estimate-table label after any exponentiation so the values shown
+  # are on the correct display scale.  Two right-aligned monospace columns
+  # (estimate and CI) ensure decimal-point alignment regardless of sign, e.g.
+  # so that " 0.01" and "-0.01" share the same decimal position.
+  if (est_table) {
+    est_strs <- sprintf("%.2f", dplyr::pull(df, !!estimate))
+    ci_strs  <- sprintf("(%.2f, %.2f)", df$.xmin, df$.xmax)
+    # Right-align each column to its maximum string width (formatC with no flag
+    # pads on the left with spaces, i.e. right-justifies).
+    df$.est_label <- paste(
+      formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
+      formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
+    )
+    df$.est_table_x <- Inf
+  }
+
   # Plot
   effect_position <- ggstance::position_dodgev(height = 0.5)
   g <-
@@ -429,22 +428,45 @@ forestplot <- function(df,
   # Build aesthetics for geom_effect; include per-row alpha when requested
   effect_aes <-
     if (is.null(alpha)) {
-      ggplot2::aes(
-        xmin = .data$.xmin,
-        xmax = .data$.xmax,
-        colour = !!colour,
-        shape = !!shape,
-        filled = .data$.filled
-      )
+      if (has_grouping) {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          group = .data$.plot_group,
+          filled = .data$.filled
+        )
+      } else {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          filled = .data$.filled
+        )
+      }
     } else {
-      ggplot2::aes(
-        xmin = .data$.xmin,
-        xmax = .data$.xmax,
-        colour = !!colour,
-        shape = !!shape,
-        filled = .data$.filled,
-        alpha = .data$.alpha
-      )
+      if (has_grouping) {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          group = .data$.plot_group,
+          filled = .data$.filled,
+          alpha = .data$.alpha
+        )
+      } else {
+        ggplot2::aes(
+          xmin = .data$.xmin,
+          xmax = .data$.xmax,
+          colour = !!colour,
+          shape = !!shape,
+          filled = .data$.filled,
+          alpha = .data$.alpha
+        )
+      }
     }
 
   g <-
@@ -554,7 +576,7 @@ forestplot <- function(df,
       label = rlang::expr(.data$.est_label)
     )
     if (has_grouping) {
-      est_table_mapping_args$group <- rlang::expr(.data$.est_table_group)
+      est_table_mapping_args$group <- rlang::expr(.data$.plot_group)
     }
     est_table_mapping <- do.call(ggplot2::aes, est_table_mapping_args)
     g <- g +
