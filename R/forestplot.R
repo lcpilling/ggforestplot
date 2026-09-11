@@ -356,11 +356,10 @@ forestplot <- function(df,
     missing_group_counts <- dodge_group_frame %>%
       dplyr::filter(dplyr::if_all(-1, is.na)) %>%
       dplyr::count(!!y_var, name = ".n_missing")
-    dodge_count_summary <- merge(
+    dodge_count_summary <- dplyr::full_join(
       dodge_group_counts,
       missing_group_counts,
-      by = names(dodge_group_counts)[1],
-      all = TRUE
+      by = names(dodge_group_counts)[1]
     )
     dodge_count_summary$.n_groups[is.na(dodge_count_summary$.n_groups)] <- 0L
     dodge_count_summary$.n_missing[is.na(dodge_count_summary$.n_missing)] <- 0L
