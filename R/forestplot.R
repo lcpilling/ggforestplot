@@ -346,13 +346,19 @@ forestplot <- function(df,
       if (!quo_is_null(colour)) list(colour) else list(),
       if (!quo_is_null(shape)) list(shape) else list()
     )
-    dodge_group_data <- df %>%
-      dplyr::select(!!y_var, !!!dodge_group_quos) %>%
+    dodge_group_frame <- df %>%
+      dplyr::select(!!y_var, !!!dodge_group_quos)
+    dodge_group_data <- dodge_group_frame %>%
       dplyr::filter(!dplyr::if_all(-1, is.na))
     dodge_group_counts <- dodge_group_data %>%
       dplyr::distinct() %>%
       dplyr::count(!!y_var, name = ".n_groups")
-    needs_group_dodge <- any(dodge_group_counts$.n_groups > 1L)
+    missing_group_counts <- dodge_group_frame %>%
+      dplyr::filter(dplyr::if_all(-1, is.na)) %>%
+      dplyr::count(!!y_var, name = ".n_missing")
+    needs_group_dodge <-
+      any(dodge_group_counts$.n_groups > 1L) ||
+      any(missing_group_counts$.n_missing > 1L)
     if (needs_group_dodge) {
       plot_group_quos <- c(list(y_var), dodge_group_quos)
       plot_group_expr <- rlang::expr(
