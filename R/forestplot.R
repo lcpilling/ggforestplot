@@ -302,13 +302,7 @@ forestplot <- function(df,
         if (!quo_is_null(colour)) list(colour) else list(),
         if (!quo_is_null(shape)) list(shape) else list()
       )
-      est_table_group_vars <- list(
-        if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)
-      )
-      est_table_group_vars <- c(
-        est_table_group_vars,
-        unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
-      )
+      est_table_group_vars <- unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
       est_table_group_vars <- lapply(est_table_group_vars, function(x) {
         if (is.factor(x)) {
           return(addNA(x))
@@ -319,7 +313,7 @@ forestplot <- function(df,
       })
       df$.est_table_group <- do.call(
         interaction,
-        c(est_table_group_vars, list(drop = FALSE, lex.order = TRUE))
+        c(est_table_group_vars, list(drop = TRUE, lex.order = TRUE))
       )
     }
   }
