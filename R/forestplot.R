@@ -302,7 +302,10 @@ forestplot <- function(df,
         if (!quo_is_null(colour)) list(colour) else list(),
         if (!quo_is_null(shape)) list(shape) else list()
       )
-      est_table_group_vars <- dplyr::select(df, !!!est_table_group_quos)
+      est_table_group_vars <- c(
+        list(if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)),
+        dplyr::select(df, !!!est_table_group_quos)
+      )
       est_table_group_vars <- lapply(est_table_group_vars, function(x) {
         if (is.factor(x)) {
           return(addNA(x))
@@ -549,12 +552,7 @@ forestplot <- function(df,
       label = .data$.est_label
     )
     if (has_grouping) {
-      est_table_mapping <- ggplot2::aes(
-        x = .data$.est_table_x,
-        y = !!y_var,
-        label = .data$.est_label,
-        group = .data$.est_table_group
-      )
+      est_table_mapping$group <- rlang::expr(.data$.est_table_group)
     }
     g <- g +
       ggplot2::geom_text(
