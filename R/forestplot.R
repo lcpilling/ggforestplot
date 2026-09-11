@@ -340,21 +340,23 @@ forestplot <- function(df,
 
   # Define the y aesthetic variable: composite key for multi, primary column otherwise
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
-  has_dodged_rows <- if (name_is_multi) {
-    anyDuplicated(df$.name_key) > 0L
-  } else {
-    anyDuplicated(dplyr::pull(df, !!name)) > 0L
-  }
-  needs_group_dodge <- has_grouping && has_dodged_rows
-  if (needs_group_dodge) {
-    plot_group_quos <- c(
-      list(y_var),
+  needs_group_dodge <- FALSE
+  if (has_grouping) {
+    dodge_group_quos <- c(
       if (!quo_is_null(colour)) list(colour) else list(),
       if (!quo_is_null(shape)) list(shape) else list()
     )
-    plot_group_expr <- rlang::expr(
-      interaction(!!!plot_group_quos, drop = TRUE, lex.order = TRUE)
-    )
+    dodge_group_counts <- df %>%
+      dplyr::select(!!y_var, !!!dodge_group_quos) %>%
+      dplyr::distinct() %>%
+      dplyr::count(!!y_var, name = ".n_groups")
+    needs_group_dodge <- any(dodge_group_counts$.n_groups > 1L)
+    if (needs_group_dodge) {
+      plot_group_quos <- c(list(y_var), dodge_group_quos)
+      plot_group_expr <- rlang::expr(
+        interaction(!!!plot_group_quos, drop = TRUE, lex.order = TRUE)
+      )
+    }
   }
 
   # Build estimate-table label after any exponentiation so the values shown
