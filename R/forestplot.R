@@ -340,25 +340,14 @@ forestplot <- function(df,
 
   # Define the y aesthetic variable: composite key for multi, primary column otherwise
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
-
   if (has_grouping) {
     plot_group_quos <- c(
       list(y_var),
       if (!quo_is_null(colour)) list(colour) else list(),
       if (!quo_is_null(shape)) list(shape) else list()
     )
-    plot_group_vars <- unname(as.list(dplyr::select(df, !!!plot_group_quos)))
-    plot_group_vars <- lapply(plot_group_vars, function(x) {
-      if (is.factor(x)) {
-        return(addNA(x))
-      }
-      x_chr <- as.character(x)
-      x_chr[is.na(x_chr)] <- "<NA>"
-      factor(x_chr, levels = unique(x_chr))
-    })
-    df$.plot_group <- do.call(
-      interaction,
-      c(plot_group_vars, list(drop = TRUE, lex.order = TRUE))
+    plot_group_expr <- rlang::expr(
+      interaction(!!!plot_group_quos, drop = TRUE, lex.order = TRUE)
     )
   }
 
@@ -434,7 +423,7 @@ forestplot <- function(df,
           xmax = .data$.xmax,
           colour = !!colour,
           shape = !!shape,
-          group = .data$.plot_group,
+          group = !!plot_group_expr,
           filled = .data$.filled
         )
       } else {
@@ -453,7 +442,7 @@ forestplot <- function(df,
           xmax = .data$.xmax,
           colour = !!colour,
           shape = !!shape,
-          group = .data$.plot_group,
+          group = !!plot_group_expr,
           filled = .data$.filled,
           alpha = .data$.alpha
         )
@@ -576,7 +565,7 @@ forestplot <- function(df,
       label = rlang::expr(.data$.est_label)
     )
     if (has_grouping) {
-      est_table_mapping_args$group <- rlang::expr(.data$.plot_group)
+      est_table_mapping_args$group <- plot_group_expr
     }
     est_table_mapping <- do.call(ggplot2::aes, est_table_mapping_args)
     g <- g +
