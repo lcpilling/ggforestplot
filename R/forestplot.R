@@ -340,7 +340,13 @@ forestplot <- function(df,
 
   # Define the y aesthetic variable: composite key for multi, primary column otherwise
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
-  if (has_grouping) {
+  has_dodged_rows <- if (name_is_multi) {
+    anyDuplicated(df$.name_key) > 0L
+  } else {
+    anyDuplicated(dplyr::pull(df, !!name)) > 0L
+  }
+  needs_group_dodge <- has_grouping && has_dodged_rows
+  if (needs_group_dodge) {
     plot_group_quos <- c(
       list(y_var),
       if (!quo_is_null(colour)) list(colour) else list(),
@@ -417,7 +423,7 @@ forestplot <- function(df,
   # Build aesthetics for geom_effect; include per-row alpha when requested
   effect_aes <-
     if (is.null(alpha)) {
-      if (has_grouping) {
+      if (needs_group_dodge) {
         ggplot2::aes(
           xmin = .data$.xmin,
           xmax = .data$.xmax,
@@ -436,7 +442,7 @@ forestplot <- function(df,
         )
       }
     } else {
-      if (has_grouping) {
+      if (needs_group_dodge) {
         ggplot2::aes(
           xmin = .data$.xmin,
           xmax = .data$.xmax,
@@ -564,7 +570,7 @@ forestplot <- function(df,
       x = rlang::expr(.data$.est_table_x),
       label = rlang::expr(.data$.est_label)
     )
-    if (has_grouping) {
+    if (needs_group_dodge) {
       est_table_mapping_args$group <- plot_group_expr
     }
     est_table_mapping <- do.call(ggplot2::aes, est_table_mapping_args)
@@ -574,7 +580,7 @@ forestplot <- function(df,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = if (has_grouping) effect_position else "identity"
+        position = if (needs_group_dodge) effect_position else "identity"
       ) +
       ggplot2::theme(
         plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
