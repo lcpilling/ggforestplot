@@ -356,9 +356,17 @@ forestplot <- function(df,
     missing_group_counts <- dodge_group_frame %>%
       dplyr::filter(dplyr::if_all(-1, is.na)) %>%
       dplyr::count(!!y_var, name = ".n_missing")
-    needs_group_dodge <-
-      any(dodge_group_counts$.n_groups > 1L) ||
-      any(missing_group_counts$.n_missing > 1L)
+    dodge_count_summary <- merge(
+      dodge_group_counts,
+      missing_group_counts,
+      by = names(dodge_group_counts)[1],
+      all = TRUE
+    )
+    dodge_count_summary$.n_groups[is.na(dodge_count_summary$.n_groups)] <- 0L
+    dodge_count_summary$.n_missing[is.na(dodge_count_summary$.n_missing)] <- 0L
+    needs_group_dodge <- any(
+      (dodge_count_summary$.n_groups + dodge_count_summary$.n_missing) > 1L
+    )
     if (needs_group_dodge) {
       plot_group_quos <- c(list(y_var), dodge_group_quos)
       plot_group_expr <- rlang::expr(
