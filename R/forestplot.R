@@ -310,7 +310,9 @@ forestplot <- function(df,
         if (is.factor(x)) {
           return(addNA(x))
         }
-        factor(x, exclude = NULL)
+        x_chr <- as.character(x)
+        x_chr[is.na(x_chr)] <- "<NA>"
+        factor(x_chr, levels = unique(x_chr))
       })
       df$.est_table_group <- do.call(
         interaction,
