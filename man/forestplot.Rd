@@ -107,7 +107,10 @@ and its confidence interval as two right-aligned columns. Each column is
 padded to a consistent width so that decimal points align regardless of
 whether values are positive or negative — e.g. \code{" 0.01"} and
 \code{"-0.01"} share the same decimal position. For log-odds plots
-(\code{logodds = TRUE}) the exponentiated values are shown.}
+(\code{logodds = TRUE}) the exponentiated values are shown. When
+\code{colour} or \code{shape} create multiple dodged rows for the same
+\code{name}, the estimate table is dodged to keep each label aligned with its
+corresponding plotted row.}
 
 \item{...}{\code{ggplot2} graphical parameters such as \code{title},
 \code{ylab}, \code{xlab}, \code{xtickbreaks} etc. to be passed along.}

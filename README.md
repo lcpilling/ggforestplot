@@ -113,8 +113,8 @@ forestplot(
 
 ### Add an estimate table (`est_table`)
 
-Only do this if one estimate per row – too busy if using “colour” or
-“shape”
+When grouping with `colour` or `shape`, the estimate table is dodged to
+match the plotted rows.
 
 ``` r
 ggforestplot::forestplot(

@@ -224,6 +224,7 @@ forestplot <- function(df,
   pvalue <- enquo(pvalue)
   colour <- enquo(colour)
   shape <- enquo(shape)
+  has_grouping <- !quo_is_null(colour) || !quo_is_null(shape)
   
   args <- list(...)
 
@@ -295,6 +296,24 @@ forestplot <- function(df,
       formatC(est_strs, width = max(nchar(est_strs), na.rm = TRUE)),
       formatC(ci_strs,  width = max(nchar(ci_strs),  na.rm = TRUE))
     )
+    df$.est_table_x <- Inf
+    if (has_grouping) {
+      est_table_group_quos <- c(
+        if (!quo_is_null(colour)) list(colour) else list(),
+        if (!quo_is_null(shape)) list(shape) else list()
+      )
+      est_table_group_vars <- dplyr::select(df, !!!est_table_group_quos)
+      est_table_group_vars <- lapply(est_table_group_vars, function(x) {
+        if (is.factor(x)) {
+          return(addNA(x))
+        }
+        factor(x, exclude = NULL)
+      })
+      df$.est_table_group <- do.call(
+        interaction,
+        c(est_table_group_vars, list(drop = TRUE, lex.order = TRUE))
+      )
+    }
   }
 
   # If pvalue provided, adjust .filled variable
@@ -517,21 +536,34 @@ forestplot <- function(df,
     )
   }
   # est_table: monospace text labels to the right of the plot panel.
-  # position = "identity" is used here because x = Inf is a constant (not a
-  # mapped aesthetic); position_dodgev requires a mapped x aesthetic and would
-  # error with "Neither x nor xmax defined".  One label per y-level is correct
-  # for the est_table column regardless of the number of colour/shape groups.
+  # When colour/shape groups create multiple dodged rows per y-level, apply the
+  # same vertical dodge so each estimate label aligns with its own point/CI.
+  # Mapping x to an explicit Inf column allows position_dodgev to work while
+  # still anchoring the text against the right-hand plot boundary.
   # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
   # keep labels compact relative to the plot rows.
   if (est_table) {
+    est_table_mapping <- ggplot2::aes(
+      x = .data$.est_table_x,
+      y = !!y_var,
+      label = .data$.est_label
+    )
+    if (has_grouping) {
+      est_table_mapping <- ggplot2::aes(
+        x = .data$.est_table_x,
+        y = !!y_var,
+        label = .data$.est_label,
+        group = .data$.est_table_group
+      )
+    }
     g <- g +
       ggplot2::geom_text(
-        ggplot2::aes(label = .data$.est_label),
-        x = Inf,
+        mapping = est_table_mapping,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = "identity"
+        position = if (has_grouping) ggstance::position_dodgev(height = 0.5) else "identity",
+        inherit.aes = FALSE
       ) +
       ggplot2::theme(
         plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")

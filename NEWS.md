@@ -68,7 +68,8 @@ area showing the estimate and confidence interval as two right-aligned columns
 (e.g. estimate `" 0.01"` and CI `"(0.00, 0.02)"`). Each column is padded to a
 consistent width so that decimal points align regardless of sign — useful for
 linear-regression results where some values are negative. For log-odds plots the
-exponentiated values are displayed.
+exponentiated values are displayed. When `colour` or `shape` create multiple
+dodged rows for the same `name`, the estimate table is now dodged to match.
 - Remove analysis scripts
 - Remove dependencies not required by `forestplot`
 - Remove docs and add to gitignore
