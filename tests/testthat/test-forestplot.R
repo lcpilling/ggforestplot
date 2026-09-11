@@ -26,6 +26,8 @@ test_that("est_table stays aligned with grouped rows", {
     function(layer) inherits(layer$geom, "GeomText"),
     logical(1L)
   ))
+  expect_length(effect_layer, 1L)
+  expect_length(text_layer, 1L)
 
   built <- ggplot2::ggplot_build(p)
   effect_data <- built$data[[effect_layer]][, c("group", "y")]
@@ -63,6 +65,8 @@ test_that("est_table keeps original row positions without grouped rows", {
     function(layer) inherits(layer$geom, "GeomText"),
     logical(1L)
   ))
+  expect_length(effect_layer, 1L)
+  expect_length(text_layer, 1L)
 
   built <- ggplot2::ggplot_build(p)
   effect_data <- built$data[[effect_layer]][, "y", drop = TRUE]
