@@ -551,7 +551,6 @@ forestplot <- function(df,
   if (est_table) {
     est_table_mapping_args <- list(
       x = rlang::expr(.data$.est_table_x),
-      y = rlang::get_expr(y_var),
       label = rlang::expr(.data$.est_label)
     )
     if (has_grouping) {
@@ -564,8 +563,7 @@ forestplot <- function(df,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = if (has_grouping) effect_position else "identity",
-        inherit.aes = FALSE
+        position = if (has_grouping) effect_position else "identity"
       ) +
       ggplot2::theme(
         plot.margin = ggplot2::margin(t = 5.5, r = 150, b = 5.5, l = 5.5, unit = "pt")
