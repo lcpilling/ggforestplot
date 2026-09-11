@@ -346,8 +346,10 @@ forestplot <- function(df,
       if (!quo_is_null(colour)) list(colour) else list(),
       if (!quo_is_null(shape)) list(shape) else list()
     )
-    dodge_group_counts <- df %>%
+    dodge_group_data <- df %>%
       dplyr::select(!!y_var, !!!dodge_group_quos) %>%
+      dplyr::filter(!dplyr::if_all(-1, is.na))
+    dodge_group_counts <- dodge_group_data %>%
       dplyr::distinct() %>%
       dplyr::count(!!y_var, name = ".n_groups")
     needs_group_dodge <- any(dodge_group_counts$.n_groups > 1L)
