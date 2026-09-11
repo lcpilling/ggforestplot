@@ -30,6 +30,8 @@ test_that("est_table stays aligned with grouped rows", {
   built <- ggplot2::ggplot_build(p)
   effect_data <- built$data[[effect_layer]][, c("group", "y")]
   text_data <- built$data[[text_layer]][, c("group", "y")]
+  effect_data <- effect_data[order(effect_data$group, effect_data$y), , drop = FALSE]
+  text_data <- text_data[order(text_data$group, text_data$y), , drop = FALSE]
 
   expect_equal(text_data$group, effect_data$group)
   expect_equal(text_data$y, effect_data$y)
