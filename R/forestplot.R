@@ -302,9 +302,12 @@ forestplot <- function(df,
         if (!quo_is_null(colour)) list(colour) else list(),
         if (!quo_is_null(shape)) list(shape) else list()
       )
+      est_table_group_vars <- list(
+        if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)
+      )
       est_table_group_vars <- c(
-        list(if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)),
-        dplyr::select(df, !!!est_table_group_quos)
+        est_table_group_vars,
+        unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
       )
       est_table_group_vars <- lapply(est_table_group_vars, function(x) {
         if (is.factor(x)) {
@@ -380,6 +383,7 @@ forestplot <- function(df,
   y_var <- if (name_is_multi) rlang::quo(.data$.name_key) else name
 
   # Plot
+  effect_position <- ggstance::position_dodgev(height = 0.5)
   g <-
     ggplot2::ggplot(
       df,
@@ -451,7 +455,7 @@ forestplot <- function(df,
     # And point+errorbars
     geom_effect(
       effect_aes,
-      position = ggstance::position_dodgev(height = 0.5)
+      position = effect_position
     ) +
     # Define the shapes to be used manually
     ggplot2::scale_shape_manual(values = c(21L, 22L, 23L, 24L, 25L)) +
@@ -562,7 +566,7 @@ forestplot <- function(df,
         hjust = -0.05,
         family = "mono",
         size = 3,
-        position = if (has_grouping) ggstance::position_dodgev(height = 0.5) else "identity",
+        position = if (has_grouping) effect_position else "identity",
         inherit.aes = FALSE
       ) +
       ggplot2::theme(
