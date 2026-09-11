@@ -302,7 +302,10 @@ forestplot <- function(df,
         if (!quo_is_null(colour)) list(colour) else list(),
         if (!quo_is_null(shape)) list(shape) else list()
       )
-      est_table_group_vars <- unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
+      est_table_group_vars <- c(
+        list(if (name_is_multi) df$.name_key else dplyr::pull(df, !!name)),
+        unname(as.list(dplyr::select(df, !!!est_table_group_quos)))
+      )
       est_table_group_vars <- lapply(est_table_group_vars, function(x) {
         if (is.factor(x)) {
           return(addNA(x))
@@ -546,20 +549,15 @@ forestplot <- function(df,
   # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
   # keep labels compact relative to the plot rows.
   if (est_table) {
-    est_table_mapping <- if (has_grouping) {
-      ggplot2::aes(
-        x = .data$.est_table_x,
-        y = !!y_var,
-        label = .data$.est_label,
-        group = .data$.est_table_group
-      )
-    } else {
-      ggplot2::aes(
-        x = .data$.est_table_x,
-        y = !!y_var,
-        label = .data$.est_label
-      )
+    est_table_mapping_args <- list(
+      x = rlang::expr(.data$.est_table_x),
+      y = rlang::get_expr(y_var),
+      label = rlang::expr(.data$.est_label)
+    )
+    if (has_grouping) {
+      est_table_mapping_args$group <- rlang::expr(.data$.est_table_group)
     }
+    est_table_mapping <- do.call(ggplot2::aes, est_table_mapping_args)
     g <- g +
       ggplot2::geom_text(
         mapping = est_table_mapping,
