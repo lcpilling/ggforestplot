@@ -552,13 +552,19 @@ forestplot <- function(df,
   # size = 3 (~8.5 pt) is slightly smaller than the ggplot2 default (3.88) to
   # keep labels compact relative to the plot rows.
   if (est_table) {
-    est_table_mapping <- ggplot2::aes(
-      x = .data$.est_table_x,
-      y = !!y_var,
-      label = .data$.est_label
-    )
-    if (has_grouping) {
-      est_table_mapping$group <- rlang::expr(.data$.est_table_group)
+    est_table_mapping <- if (has_grouping) {
+      ggplot2::aes(
+        x = .data$.est_table_x,
+        y = !!y_var,
+        label = .data$.est_label,
+        group = .data$.est_table_group
+      )
+    } else {
+      ggplot2::aes(
+        x = .data$.est_table_x,
+        y = !!y_var,
+        label = .data$.est_label
+      )
     }
     g <- g +
       ggplot2::geom_text(
